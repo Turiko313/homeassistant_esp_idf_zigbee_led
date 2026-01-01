@@ -11,6 +11,7 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_check.h"
+#include "esp_random.h"
 #include "ha/esp_zigbee_ha_standard.h"
 #include "led_strip.h"
 
@@ -92,7 +93,6 @@ static void effect_rainbow(uint32_t counter)
     for (int i = 0; i < LED_STRIP_LENGTH; i++) {
         uint8_t hue = (counter + (i * 256 / LED_STRIP_LENGTH)) & 0xFF;
         uint8_t r, g, b;
-        hsv_to_rgb(hue, 254, light_state.level);
         hsv_to_rgb(hue, 254, light_state.level, &r, &g, &b);
         led_strip_set_pixel(led_strip, i, r, g, b);
     }
@@ -455,11 +455,10 @@ void app_main(void)
     led_strip_clear(led_strip);
 
     ESP_LOGI(TAG, "Zigbee WS2812 Light avec effets - GPIO: %d, LEDs: %d", LED_STRIP_GPIO, LED_STRIP_LENGTH);
-    ESP_LOGI(TAG, "Effet par défaut: %s", effect_names[light_state.current_effect]);
+    ESP_LOGI(TAG, "Démarrage: Lumière OFF - Prêt pour contrôle Zigbee");
     
-    // Démarrer avec effet Arc-en-ciel pour le test
-    light_state.current_effect = EFFECT_RAINBOW;
-    light_state.on_off = true;
+    // Démarrer avec lumière ÉTEINTE (contrôle via Home Assistant)
+    // Pour changer l'effet par défaut, modifie: light_state.current_effect = EFFECT_RAINBOW;
 
     // Création de la tâche d'animation
     xTaskCreate(effect_task, "LED_Effects", 2048, NULL, 5, NULL);
