@@ -10,11 +10,12 @@
 #include "nvs_flash.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "ha/esp_zigbee_ha_standard.h"
+#include "esp_zigbee_core.h"
 #include "led_strip.h"
 
 #define LED_STRIP_GPIO      8
 #define LED_STRIP_LENGTH    60
+#define ENDPOINT_ID         10
 
 static const char *TAG = "ZIGBEE_WS2812";
 static led_strip_handle_t led_strip = NULL;
@@ -35,23 +36,20 @@ static struct {
 // Conversion HSV vers RGB
 static void hsv_to_rgb(uint8_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b) {
     uint16_t h_scaled = h * 360 / 254;
-    uint8_t s_scaled = s * 100 / 254;
-    uint8_t v_scaled = v;
-    
     uint8_t region = h_scaled / 60;
     uint8_t remainder = (h_scaled - (region * 60)) * 6;
     
-    uint8_t p = (v_scaled * (255 - s_scaled)) >> 8;
-    uint8_t q = (v_scaled * (255 - ((s_scaled * remainder) >> 8))) >> 8;
-    uint8_t t = (v_scaled * (255 - ((s_scaled * (255 - remainder)) >> 8))) >> 8;
+    uint8_t p = (v * (255 - s)) >> 8;
+    uint8_t q = (v * (255 - ((s * remainder) >> 8))) >> 8;
+    uint8_t t = (v * (255 - ((s * (255 - remainder)) >> 8))) >> 8;
     
     switch (region) {
-        case 0:  *r = v_scaled; *g = t; *b = p; break;
-        case 1:  *r = q; *g = v_scaled; *b = p; break;
-        case 2:  *r = p; *g = v_scaled; *b = t; break;
-        case 3:  *r = p; *g = q; *b = v_scaled; break;
-        case 4:  *r = t; *g = p; *b = v_scaled; break;
-        default: *r = v_scaled; *g = p; *b = q; break;
+        case 0:  *r = v; *g = t; *b = p; break;
+        case 1:  *r = q; *g = v; *b = p; break;
+        case 2:  *r = p; *g = v; *b = t; break;
+        case 3:  *r = p; *g = q; *b = v; break;
+        case 4:  *r = t; *g = p; *b = v; break;
+        default: *r = v; *g = p; *b = q; break;
     }
 }
 
@@ -126,18 +124,44 @@ static void esp_zb_task(void *pvParameters) {
     esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZED_CONFIG();
     esp_zb_init(&zb_nwk_cfg);
     
-    esp_zb_color_dimmable_light_cfg_t light_cfg = ESP_ZB_DEFAULT_COLOR_DIMMABLE_LIGHT_CONFIG();
+    // Create endpoint list
     esp_zb_ep_list_t *ep_list = esp_zb_ep_list_create();
+    
+    // Create cluster list for color dimmable light
     esp_zb_cluster_list_t *cluster_list = esp_zb_zcl_cluster_list_create();
     
-    esp_zb_cluster_list_add_basic_cluster(cluster_list, esp_zb_basic_cluster_create(&light_cfg.basic_cfg), ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-    esp_zb_cluster_list_add_identify_cluster(cluster_list, esp_zb_identify_cluster_create(&light_cfg.identify_cfg), ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-    esp_zb_cluster_list_add_on_off_cluster(cluster_list, esp_zb_on_off_cluster_create(&light_cfg.on_off_cfg), ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-    esp_zb_cluster_list_add_level_cluster(cluster_list, esp_zb_level_cluster_create(&light_cfg.level_cfg), ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-    esp_zb_cluster_list_add_color_control_cluster(cluster_list, esp_zb_color_control_cluster_create(&light_cfg.color_cfg), ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    // Basic cluster
+    esp_zb_attribute_list_t *basic_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_BASIC);
+    esp_zb_basic_cluster_add_attr(basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_ZCL_VERSION_ID, &(uint8_t){3});
+    esp_zb_basic_cluster_add_attr(basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_POWER_SOURCE_ID, &(uint8_t){1});
+    esp_zb_cluster_list_add_basic_cluster(cluster_list, basic_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     
+    // Identify cluster
+    esp_zb_attribute_list_t *identify_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_IDENTIFY);
+    esp_zb_identify_cluster_add_attr(identify_cluster, ESP_ZB_ZCL_ATTR_IDENTIFY_IDENTIFY_TIME_ID, &(uint16_t){0});
+    esp_zb_cluster_list_add_identify_cluster(cluster_list, identify_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    
+    // On/Off cluster
+    esp_zb_attribute_list_t *on_off_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_ON_OFF);
+    esp_zb_on_off_cluster_add_attr(on_off_cluster, ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID, &(bool){false});
+    esp_zb_cluster_list_add_on_off_cluster(cluster_list, on_off_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    
+    // Level cluster
+    esp_zb_attribute_list_t *level_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL);
+    esp_zb_level_cluster_add_attr(level_cluster, ESP_ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID, &(uint8_t){128});
+    esp_zb_cluster_list_add_level_cluster(cluster_list, level_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    
+    // Color cluster
+    esp_zb_attribute_list_t *color_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL);
+    esp_zb_color_control_cluster_add_attr(color_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID, &(uint8_t){0});
+    esp_zb_color_control_cluster_add_attr(color_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID, &(uint8_t){254});
+    esp_zb_color_control_cluster_add_attr(color_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_COLOR_MODE_ID, &(uint8_t){0});
+    esp_zb_color_control_cluster_add_attr(color_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_COLOR_CAPABILITIES_ID, &(uint16_t){0x0001});
+    esp_zb_cluster_list_add_color_control_cluster(cluster_list, color_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    
+    // Create endpoint
     esp_zb_endpoint_config_t endpoint_config = {
-        .endpoint = HA_ESP_LIGHT_ENDPOINT,
+        .endpoint = ENDPOINT_ID,
         .app_profile_id = ESP_ZB_AF_HA_PROFILE_ID,
         .app_device_id = ESP_ZB_HA_COLOR_DIMMABLE_LIGHT_DEVICE_ID,
         .app_device_version = 0
