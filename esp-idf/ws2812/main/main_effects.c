@@ -427,6 +427,42 @@ static void esp_zb_task(void *pvParameters)
     };
     esp_zb_ep_list_add_ep(ep_list, cluster_list, endpoint_config);
     esp_zb_device_register(ep_list);
+    
+    // Forcer les valeurs initiales des attributs couleur pour que Home Assistant les détecte
+    uint8_t color_mode = 0x00;  // Hue/Saturation mode
+    uint16_t color_capabilities = 0x0001;  // Hue/Saturation capable
+    uint8_t hue = 0;
+    uint8_t saturation = 0;
+    
+    esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT, 
+                                  ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                                  ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+                                  ESP_ZB_ZCL_ATTR_COLOR_CONTROL_COLOR_MODE_ID,
+                                  &color_mode,
+                                  false);
+    
+    esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT,
+                                  ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                                  ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+                                  ESP_ZB_ZCL_ATTR_COLOR_CONTROL_COLOR_CAPABILITIES_ID,
+                                  &color_capabilities,
+                                  false);
+    
+    esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT,
+                                  ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                                  ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+                                  ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID,
+                                  &hue,
+                                  false);
+    
+    esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT,
+                                  ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                                  ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+                                  ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID,
+                                  &saturation,
+                                  false);
+    
+    ESP_LOGI(TAG, "Attributs couleur ZCL initialisés: mode=%d, capabilities=0x%04x", color_mode, color_capabilities);
 
     esp_zb_core_action_handler_register(zb_action_handler);
     esp_zb_set_primary_network_channel_set(ESP_ZB_PRIMARY_CHANNEL_MASK);
