@@ -36,7 +36,7 @@ static light_state_t light_state = {
     .saturation = 0  // Blanc au démarrage
 };
 
-// Conversion HSV vers RGB
+// Conversion HSV vers RGB (corrigée)
 static void hsv_to_rgb(uint8_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b)
 {
     // Cas spécial : saturation = 0 ? couleur blanche/grise
@@ -47,9 +47,10 @@ static void hsv_to_rgb(uint8_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, 
         return;
     }
 
-    uint16_t h_scaled = h * 360 / 254;
-    uint8_t region = h_scaled / 60;
-    uint8_t remainder = (h_scaled - (region * 60)) * 6;
+    uint32_t hue = (uint32_t)h * 360 / 254;      // h (0-254) ? 0-360°
+    uint8_t region = hue / 60;
+    uint16_t rem = hue % 60;
+    uint8_t remainder = (rem * 255) / 60;        // CORRECTION: 0 à 255
     
     uint8_t p = (v * (255 - s)) >> 8;
     uint8_t q = (v * (255 - ((s * remainder) >> 8))) >> 8;
