@@ -1,0 +1,45 @@
+substitutions:
+  node_name: zigbee-ws2812-5v
+  friendly_name: "Zigbee WS2812 5V"
+  led_count: "60"
+  zigbee_channel: "15"
+  zigbee_pan_id: "0x1AAA"
+  zigbee_ext_pan_id: "00:11:22:33:44:55:66:77"
+  zigbee_network_key: "[0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F]"
+
+esphome:
+  name: ${node_name}
+  platformio_options:
+    board_build.flash_mode: dio
+
+esp32:
+  board: esp32-c6-devkitc-1 # changer en esp32h2-devkitm-1 si H2
+  framework:
+    type: esp-idf
+
+logger:
+
+zigbee:
+  channel: ${zigbee_channel}
+  pan_id: ${zigbee_pan_id}
+  extended_pan_id: ${zigbee_ext_pan_id}
+  network_key: ${zigbee_network_key}
+
+button:
+  - platform: restart
+    name: "${friendly_name} Reboot"
+
+light:
+  - platform: neopixelbus
+    name: "${friendly_name}"
+    variant: WS2812
+    pin: GPIO8           # utiliser un level shifter 5V
+    num_leds: ${led_count}
+    default_transition_length: 200ms
+    effects:
+      - addressable_rainbow:
+      - addressable_color_wipe:
+      - addressable_twinkle:
+      - addressable_flicker:
+      - addressable_scan:
+      - addressable_random_twinkle:
