@@ -1,7 +1,11 @@
-# Configuration Zigbee pour ESP32-H2
-CONFIG_ZB_ENABLED=y
-CONFIG_ZB_ZCZR=y
-CONFIG_ZB_ZED=y
+# Configuration Zigbee pour ESP32-H2 (ESP-IDF 5.3.1)
+# Note: Zigbee nécessite esp-zigbee-lib externe (pas dans ESP-IDF 5.3.1 de base)
+# Utilisez menuconfig pour activer les options nécessaires
+
+# Ces configs peuvent ne pas être disponibles dans IDF 5.3.1 standard
+# CONFIG_ZB_ENABLED=y
+# CONFIG_ZB_ZCZR=y
+# CONFIG_ZB_ZED=y
 
 # Configuration LED Strip
 CONFIG_LED_STRIP_ENABLED=y
