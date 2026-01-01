@@ -1,8 +1,7 @@
-# Configuration Zigbee pour ESP32-H2
-CONFIG_ZB_ENABLED=y
-CONFIG_ZB_ZCZR=y
-CONFIG_ZB_ZED=y
+# Configuration Zigbee pour ESP32-H2 (ESP-IDF 5.3.1)
+# Note: Zigbee requires esp-zigbee-lib external component
 
-# Power Management (optionnel, pour Light Sleep)
-# CONFIG_PM_ENABLE=y
-# CONFIG_FREERTOS_USE_TICKLESS_IDLE=y
+# These configs may not be available in standard IDF 5.3.1
+# CONFIG_ZB_ENABLED=y
+# CONFIG_ZB_ZCZR=y
+# CONFIG_ZB_ZED=y

@@ -1,0 +1,36 @@
+Traceback (most recent call last):
+  File "C:\Espressif\python_env\idf5.3_py3.11_env\Lib\site-packages\kconfiglib\core.py", line 1106, in load_config
+    self._load_config(filename, replace)
+  File "C:\Espressif\python_env\idf5.3_py3.11_env\Lib\site-packages\kconfiglib\core.py", line 1136, in _load_config
+    for linenr, line in enumerate(f, 1):
+  File "<frozen codecs>", line 322, in decode
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe9 in position 70: invalid continuation byte
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Espressif\python_env\idf5.3_py3.11_env\Lib\site-packages\kconfgen\__main__.py", line 18, in <module>
+    main()
+  File "C:\Espressif\python_env\idf5.3_py3.11_env\Lib\site-packages\kconfgen\core.py", line 824, in main
+    config.load_config(temp_file2, replace=False)
+  File "C:\Espressif\python_env\idf5.3_py3.11_env\Lib\site-packages\kconfiglib\core.py", line 1108, in load_config
+    _decoding_error(e, filename)
+  File "C:\Espressif\python_env\idf5.3_py3.11_env\Lib\site-packages\kconfiglib\core.py", line 6361, in _decoding_error
+    raise KconfigError(
+kconfiglib.core.KconfigError: 
+Malformed utf-8 in 'C:\Users\franc\AppData\Local\Temp\kconfgen_tmpeua2_n0f'
+Context: b'P32-H2 (ESP-IDF 5.3.1)\r\n# Note: Zigbee n\xe9cessite esp-zigbee-lib externe (pas dans'
+Problematic data: b'\xe9'
+Reason: invalid continuation byte
+CMake Error at C:/Espressif/frameworks/esp-idf-v5.3.1/tools/cmake/kconfig.cmake:209 (message):
+  Failed to run kconfgen
+  (C:/Espressif/python_env/idf5.3_py3.11_env/Scripts/python.exe;-m;kconfgen;--list-separator=semicolon;--kconfig;C:/Espressif/frameworks/esp-idf-v5.3.1/Kconfig;--sdkconfig-rename;C:/Espressif/frameworks/esp-idf-v5.3.1/sdkconfig.rename;--config;C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/sdkconfig;--defaults;C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/sdkconfig.defaults;--env-file;C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/build/config.env).
+  Error 1
+Call Stack (most recent call first):
+  C:/Espressif/frameworks/esp-idf-v5.3.1/tools/cmake/build.cmake:623 (__kconfig_generate_config)
+  C:/Espressif/frameworks/esp-idf-v5.3.1/tools/cmake/project.cmake:710 (idf_build_process)
+  CMakeLists.txt:4 (project)
+
+

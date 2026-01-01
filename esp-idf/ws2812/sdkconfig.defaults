@@ -1,8 +1,8 @@
-# Configuration Zigbee pour ESP32-H2 (ESP-IDF 5.3.1)
-# Note: Zigbee nécessite esp-zigbee-lib externe (pas dans ESP-IDF 5.3.1 de base)
-# Utilisez menuconfig pour activer les options nécessaires
+Configuration Zigbee pour ESP32-H2 (ESP-IDF 5.3.1)
+Note: Zigbee requires esp-zigbee-lib external component (not in ESP-IDF 5.3.1 base)
+Use menuconfig to enable necessary options if needed
 
-# Ces configs peuvent ne pas être disponibles dans IDF 5.3.1 standard
+These configs may not be available in standard IDF 5.3.1
 # CONFIG_ZB_ENABLED=y
 # CONFIG_ZB_ZCZR=y
 # CONFIG_ZB_ZED=y
