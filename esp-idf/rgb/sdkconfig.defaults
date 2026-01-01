@@ -1,0 +1,8 @@
+# Configuration Zigbee pour ESP32-H2
+CONFIG_ZB_ENABLED=y
+CONFIG_ZB_ZCZR=y
+CONFIG_ZB_ZED=y
+
+# Power Management (optionnel, pour Light Sleep)
+# CONFIG_PM_ENABLE=y
+# CONFIG_FREERTOS_USE_TICKLESS_IDLE=y
