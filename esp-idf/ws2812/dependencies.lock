@@ -39,5 +39,5 @@ direct_dependencies:
 - espressif/esp-zigbee-lib
 - espressif/led_strip
 manifest_hash: 66882dd23ab79ebc036d5c252feca4c56f53dc4fc8de70db772bee43eacd5a30
-target: esp32
+target: esp32h2
 version: 2.0.0
