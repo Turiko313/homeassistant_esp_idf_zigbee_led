@@ -501,27 +501,34 @@ void app_main(void)
     led_strip_refresh(led_strip);
 
     // TEST: Vérifier que le ruban LED fonctionne
-    ESP_LOGI(TAG, "TEST LED STRIP - Affichage rouge pendant 2 secondes");
+    ESP_LOGI(TAG, "TEST LED STRIP - ROUGE (RGB) pendant 2 secondes");
     for (int i = 0; i < LED_STRIP_LENGTH; i++) {
-        led_strip_set_pixel(led_strip, i, 50, 0, 0);  // Rouge vif
-    }
-    led_strip_refresh(led_strip);
-    vTaskDelay(pdMS_TO_TICKS(2000));  // Attendre 2 secondes
-    
-    ESP_LOGI(TAG, "TEST LED STRIP - Affichage vert pendant 2 secondes");
-    for (int i = 0; i < LED_STRIP_LENGTH; i++) {
-        led_strip_set_pixel(led_strip, i, 0, 50, 0);  // Vert vif
+        led_strip_set_pixel(led_strip, i, 50, 0, 0);  // R, G, B
     }
     led_strip_refresh(led_strip);
     vTaskDelay(pdMS_TO_TICKS(2000));
     
-    ESP_LOGI(TAG, "TEST LED STRIP - Affichage bleu pendant 2 secondes");
+    ESP_LOGI(TAG, "TEST LED STRIP - ROUGE (GRB) pendant 2 secondes");
     for (int i = 0; i < LED_STRIP_LENGTH; i++) {
-        led_strip_set_pixel(led_strip, i, 0, 0, 50);  // Bleu vif
+        led_strip_set_pixel(led_strip, i, 0, 50, 0);  // G, R, B (= ROUGE en GRB)
     }
     led_strip_refresh(led_strip);
     vTaskDelay(pdMS_TO_TICKS(2000));
     
+    ESP_LOGI(TAG, "TEST LED STRIP - Vert (RGB) pendant 2 secondes");
+    for (int i = 0; i < LED_STRIP_LENGTH; i++) {
+        led_strip_set_pixel(led_strip, i, 0, 50, 0);  // R, G, B
+    }
+    led_strip_refresh(led_strip);
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    
+    ESP_LOGI(TAG, "TEST LED STRIP - Bleu (RGB) pendant 2 secondes");
+    for (int i = 0; i < LED_STRIP_LENGTH; i++) {
+        led_strip_set_pixel(led_strip, i, 0, 0, 50);  // R, G, B
+    }
+    led_strip_refresh(led_strip);
+    vTaskDelay(pdMS_TO_TICKS(2000));
+
     led_strip_clear(led_strip);
     led_strip_refresh(led_strip);
 
