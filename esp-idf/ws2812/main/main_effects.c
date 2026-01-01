@@ -60,8 +60,8 @@ typedef struct {
 static light_state_t light_state = {
     .on_off = false,
     .level = 128,
-    .hue = 0,
-    .saturation = 254,
+    .hue = 0,          // Hue à 0 (rouge) - sera défini par Home Assistant
+    .saturation = 0,   // Saturation à 0 = BLANC au lieu de couleur
     .current_effect = EFFECT_NONE,
     .effect_counter = 0
 };
@@ -310,7 +310,8 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
         }
     }
 
-    if (light_changed && light_state.current_effect == EFFECT_NONE) {
+    // Mettre à jour les LEDs pour TOUS les changements (pas seulement EFFECT_NONE)
+    if (light_changed) {
         update_led_strip();
     }
 
