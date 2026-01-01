@@ -295,25 +295,31 @@ void app_main(void)
         .max_leds = LED_STRIP_1_LENGTH,
     };
     led_strip_rmt_config_t rmt1_config = {
+        .clk_src = RMT_CLK_SRC_DEFAULT,
         .resolution_hz = 10 * 1000 * 1000,
+        .flags.with_dma = false,
+        .mem_block_symbols = 64,
     };
     ESP_ERROR_CHECK(led_strip_new_rmt_device(&strip1_config, &rmt1_config, &led_strip_1));
     light_states[0].strip = led_strip_1;
     led_strip_clear(led_strip_1);
+    ESP_LOGI(TAG, "LED1 initialized on GPIO%d", LED_STRIP_1_GPIO);
 
-    // Configuration ruban LED 2 (GPIO5)
+    // Configuration ruban LED 2 (GPIO5) 
     led_strip_config_t strip2_config = {
         .strip_gpio_num = LED_STRIP_2_GPIO,
         .max_leds = LED_STRIP_2_LENGTH,
     };
     led_strip_rmt_config_t rmt2_config = {
-        .resolution_hz = 10 * 1000 * 1000,
         .clk_src = RMT_CLK_SRC_DEFAULT,
+        .resolution_hz = 10 * 1000 * 1000,
         .flags.with_dma = false,
+        .mem_block_symbols = 64,
     };
     ESP_ERROR_CHECK(led_strip_new_rmt_device(&strip2_config, &rmt2_config, &led_strip_2));
     light_states[1].strip = led_strip_2;
     led_strip_clear(led_strip_2);
+    ESP_LOGI(TAG, "LED2 initialized on GPIO%d", LED_STRIP_2_GPIO);
 
     ESP_LOGI(TAG, "Zigbee Dual WS2812 Light");
     ESP_LOGI(TAG, "LED1 - GPIO: %d, LEDs: %d", LED_STRIP_1_GPIO, LED_STRIP_1_LENGTH);
