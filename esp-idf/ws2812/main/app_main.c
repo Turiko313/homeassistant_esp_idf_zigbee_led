@@ -1,7 +1,7 @@
 /*
- * ESP32-H2/C6 Zigbee WS2812 LED Strip Controller
+ * ESP32-H2 Zigbee WS2812 LED Strip Controller
  * 
- * Contrôle un ruban WS2812 via Zigbee comme une ampoule RGB
+ * Controle un ruban WS2812 via Zigbee comme une ampoule RGB
  * Compatible Home Assistant (ZHA / zigbee2mqtt)
  */
 
@@ -10,12 +10,11 @@
 #include "nvs_flash.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_zigbee_core.h"
+#include "ha/esp_zigbee_ha_standard.h"
 #include "led_strip.h"
 
 #define LED_STRIP_GPIO      8
 #define LED_STRIP_LENGTH    60
-#define LED_STRIP_RMT_CH    0
 
 static const char *TAG = "ZIGBEE_WS2812";
 static led_strip_handle_t led_strip = NULL;
@@ -122,17 +121,15 @@ static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id,
     return ret;
 }
 
-// Configuration des endpoints Zigbee
+// Task Zigbee
 static void esp_zb_task(void *pvParameters) {
     esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZED_CONFIG();
     esp_zb_init(&zb_nwk_cfg);
     
-    // Endpoint de lumière couleur
     esp_zb_color_dimmable_light_cfg_t light_cfg = ESP_ZB_DEFAULT_COLOR_DIMMABLE_LIGHT_CONFIG();
     esp_zb_ep_list_t *ep_list = esp_zb_ep_list_create();
     esp_zb_cluster_list_t *cluster_list = esp_zb_zcl_cluster_list_create();
     
-    // Clusters On/Off, Level, Color
     esp_zb_cluster_list_add_basic_cluster(cluster_list, esp_zb_basic_cluster_create(&light_cfg.basic_cfg), ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     esp_zb_cluster_list_add_identify_cluster(cluster_list, esp_zb_identify_cluster_create(&light_cfg.identify_cfg), ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     esp_zb_cluster_list_add_on_off_cluster(cluster_list, esp_zb_on_off_cluster_create(&light_cfg.on_off_cfg), ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
@@ -149,7 +146,6 @@ static void esp_zb_task(void *pvParameters) {
     esp_zb_ep_list_add_ep(ep_list, cluster_list, endpoint_config);
     esp_zb_device_register(ep_list);
     esp_zb_core_action_handler_register(zb_action_handler);
-    
     esp_zb_set_primary_network_channel_set(ESP_ZB_PRIMARY_CHANNEL_MASK);
     
     ESP_ERROR_CHECK(esp_zb_start(false));
@@ -157,9 +153,7 @@ static void esp_zb_task(void *pvParameters) {
 }
 
 void app_main(void) {
-    esp_err_t ret;
-    
-    ret = nvs_flash_init();
+    esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
@@ -172,10 +166,9 @@ void app_main(void) {
         .max_leds = LED_STRIP_LENGTH,
     };
     led_strip_rmt_config_t rmt_config = {
-        .resolution_hz = 10 * 1000 * 1000, // 10MHz
+        .resolution_hz = 10 * 1000 * 1000,
     };
     ESP_ERROR_CHECK(led_strip_new_rmt_device(&strip_config, &rmt_config, &led_strip));
-    
     led_strip_clear(led_strip);
     
     ESP_LOGI(TAG, "Starting Zigbee WS2812 Light");
