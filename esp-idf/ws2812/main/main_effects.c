@@ -485,21 +485,18 @@ void app_main(void)
     led_strip_config_t strip_config = {
         .strip_gpio_num = LED_STRIP_GPIO,
         .max_leds = LED_STRIP_LENGTH,
-        .led_pixel_format = LED_PIXEL_FORMAT_GRB,  // Format GRB pour WS2812
+        .led_pixel_format = LED_PIXEL_FORMAT_GRB,
         .led_model = LED_MODEL_WS2812,
+        .flags.invert_out = false,
     };
     
     led_strip_rmt_config_t rmt_config = {
-        .resolution_hz = 10 * 1000 * 1000,  // 10 MHz
-        .flags.with_dma = false,            // DMA désactivé (ESP32-H2 ne le supporte pas toujours)
+        .clk_src = RMT_CLK_SRC_DEFAULT,
+        .resolution_hz = 10 * 1000 * 1000,
+        .flags.with_dma = false,
     };
     
-    // Créer le canal RMT
-    ESP_ERROR_CHECK(led_strip_new_rmt_channel(&rmt_config, &led_strip));
-    
-    // Installer l'encodeur
-    ESP_ERROR_CHECK(led_strip_install_encoder(&strip_config, led_strip));
-    
+    ESP_ERROR_CHECK(led_strip_new_rmt_device(&strip_config, &rmt_config, &led_strip));
     led_strip_clear(led_strip);
     led_strip_refresh(led_strip);
 
