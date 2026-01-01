@@ -210,10 +210,14 @@ static void effect_fireworks(uint32_t counter)
 static void update_led_strip(void)
 {
     if (!light_state.on_off) {
+        ESP_LOGI(TAG, "update_led_strip: Lumière OFF");
         led_strip_clear(led_strip);
         led_strip_refresh(led_strip);
         return;
     }
+    
+    ESP_LOGI(TAG, "update_led_strip: ON - Effet=%d, Hue=%d, Sat=%d, Level=%d", 
+             light_state.current_effect, light_state.hue, light_state.saturation, light_state.level);
     
     switch (light_state.current_effect) {
         case EFFECT_RAINBOW:
@@ -453,6 +457,31 @@ void app_main(void)
     };
     ESP_ERROR_CHECK(led_strip_new_rmt_device(&strip_config, &rmt_config, &led_strip));
     led_strip_clear(led_strip);
+
+    // TEST: Vérifier que le ruban LED fonctionne
+    ESP_LOGI(TAG, "TEST LED STRIP - Affichage rouge pendant 2 secondes");
+    for (int i = 0; i < LED_STRIP_LENGTH; i++) {
+        led_strip_set_pixel(led_strip, i, 50, 0, 0);  // Rouge vif
+    }
+    led_strip_refresh(led_strip);
+    vTaskDelay(pdMS_TO_TICKS(2000));  // Attendre 2 secondes
+    
+    ESP_LOGI(TAG, "TEST LED STRIP - Affichage vert pendant 2 secondes");
+    for (int i = 0; i < LED_STRIP_LENGTH; i++) {
+        led_strip_set_pixel(led_strip, i, 0, 50, 0);  // Vert vif
+    }
+    led_strip_refresh(led_strip);
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    
+    ESP_LOGI(TAG, "TEST LED STRIP - Affichage bleu pendant 2 secondes");
+    for (int i = 0; i < LED_STRIP_LENGTH; i++) {
+        led_strip_set_pixel(led_strip, i, 0, 0, 50);  // Bleu vif
+    }
+    led_strip_refresh(led_strip);
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    
+    led_strip_clear(led_strip);
+    led_strip_refresh(led_strip);
 
     ESP_LOGI(TAG, "Zigbee WS2812 Light avec effets - GPIO: %d, LEDs: %d", LED_STRIP_GPIO, LED_STRIP_LENGTH);
     ESP_LOGI(TAG, "Démarrage: Lumière OFF - Effet actif: %s", effect_names[light_state.current_effect]);
