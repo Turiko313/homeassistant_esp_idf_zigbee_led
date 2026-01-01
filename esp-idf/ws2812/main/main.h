@@ -35,7 +35,7 @@
 /* Configuration par défaut de la radio Zigbee (ESP32-H2 RCP mode) */
 #define ESP_ZB_DEFAULT_RADIO_CONFIG()                           \
     {                                                           \
-        .radio_mode = RADIO_MODE_NATIVE,                        \
+        .radio_mode = ZB_RADIO_MODE_NATIVE,                     \
     }
 
 /* Configuration par défaut de l'hôte */
