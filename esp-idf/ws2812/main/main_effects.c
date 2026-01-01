@@ -310,10 +310,8 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
         }
     }
 
-    // Mettre à jour les LEDs pour TOUS les changements (pas seulement EFFECT_NONE)
-    if (light_changed) {
-        update_led_strip();
-    }
+    // Mettre à jour les LEDs immédiatement pour tous les changements
+    update_led_strip();
 
     return ret;
 }
