@@ -1,173 +1,103 @@
 # Zigbee LED Strip with ESP-IDF (ESP32-C6/H2) for Home Assistant
 
-?? **ATTENTION : Support Zigbee ESPHome en cours de développement**  
-Les exemples YAML fournis utilisent un composant `zigbee:` **non encore disponible** dans ESPHome stable ou dev.  
-Pour utiliser Zigbee avec ESP32-C6/H2 actuellement, vous devez utiliser **ESP-IDF pur** (voir section Alternative ESP-IDF).
+Projet pour piloter des rubans LED (mono, CCT, RGB, RGBW ou WS2812) avec ESP32-C6 / ESP32-H2 via Zigbee, intégrable dans Home Assistant.
 
-Projet de base pour piloter un ruban LED (mono, CCT, RGB, RGBW ou WS2812) avec un SoC Zigbee ESP32-C6 / ESP32-H2, intégrable dans Home Assistant comme ampoule Zigbee.
+## ?? État du support
 
-## Matériel
-- ESP32-C6 ou ESP32-H2 (radio 802.15.4 nécessaire pour Zigbee)
-- Ruban LED 5 V adressable (WS2812) ou analogique 12/24 V (mono, CCT, RGB/RGBW) — les configs analogiques fonctionnent aussi en 5 V si MOSFETs logique niveau
-- 3/4 MOSFETs canal N (ou driver dédié) pour rubans analogiques
-- Level shifter 5 V conseillé pour données WS2812
-- Alimentation adaptée au ruban, masse commune avec l'ESP
-- Câblage : sorties PWM (LEDC) vers MOSFETs pour analogique ; 1 pin data pour WS2812
+### ESPHome (exemples YAML)
+?? **Support Zigbee ESPHome NON disponible actuellement.**  
+Les exemples dans `examples/` sont prêts pour utilisation future quand ESPHome ajoutera le composant `zigbee`.
 
-## État du support Zigbee ESPHome
+### ESP-IDF (exemples C/C++) ? FONCTIONNEL
+**Utilisez les exemples ESP-IDF dans le dossier `esp-idf/` pour une solution Zigbee fonctionnelle maintenant.**
 
-?? **Le composant `zigbee` n'est pas encore disponible dans ESPHome (janvier 2026).**
+---
 
-Les exemples YAML fournis dans ce dépôt sont **prêts pour utilisation future** lorsque ESPHome ajoutera officiellement le support Zigbee.
+## ?? Démarrage rapide (ESP-IDF)
 
-**Actuellement, pour utiliser Zigbee :**
-- Utiliser **ESP-IDF pur** (voir section "Alternative ESP-IDF" ci-dessous)
-- Ou attendre la release officielle ESPHome Zigbee (suivre https://github.com/esphome/esphome/discussions)
+### 1. Installation ESP-IDF
 
-## Exemples fournis (`examples/`) - POUR UTILISATION FUTURE
-
-### ESP32-C6 (Wi-Fi + Zigbee)
-Choisissez le YAML selon le type de ruban :
-- `zigbee_mono_12-24v.yaml` : 1 canal (blanc) analogique 5/12/24 V
-- `zigbee_cct_12-24v.yaml` : 2 canaux blanc chaud/froid (CCT) analogique 5/12/24 V
-- `zigbee_rgb_12-24v.yaml` : 3 canaux RGB analogique 5/12/24 V
-- `zigbee_rgbw_12-24v.yaml` : 4 canaux RGBW analogique 5/12/24 V
-- `zigbee_ws2812_5v.yaml` : ruban adressable 5 V (WS2812/WS2812B), piloté comme une seule lumière
-
-**ESP32-C6 supporte Wi-Fi + Zigbee simultanément** ? logs OTA et mises à jour sans câble.
-
-### ESP32-H2 (Zigbee pur uniquement) - `examples/h2/`
-?? **ESP32-H2 n'a pas de Wi-Fi natif** (seulement Bluetooth LE + Zigbee). Utilisez les versions sans Wi-Fi dans `examples/h2/` :
-- `zigbee_mono_12-24v_h2.yaml`
-- `zigbee_cct_12-24v_h2.yaml`
-- `zigbee_rgb_12-24v_h2.yaml`
-- `zigbee_rgbw_12-24v_h2.yaml`
-- `zigbee_ws2812_5v_h2.yaml`
-
-Mode Zigbee pur ? pas de logs temps réel, flash via USB uniquement.
-
-### Points communs
-- Zigbee configuré (canal, PAN ID, clé réseau) à ajuster selon votre réseau
-- Pins GPIO par défaut pour ESP32-C6 DevKitC (LED analogique : 4/5/6/7 ; WS2812 data : 8) — modifiez selon votre carte
-- Bouton virtuel de reboot exposé (entité `button`)
-- Effets de lumière préconfigurés (random/strobe/flicker pour analogique, rainbow/twinkle/scan pour WS2812)
-
-## Alternative ESP-IDF (méthode actuelle fonctionnelle)
-
-Pour utiliser Zigbee **maintenant** avec ESP32-C6/H2, utilisez ESP-IDF directement :
-
-### 1. Installation ESP-IDF (Windows)
+**Windows :**
 ```powershell
-# Télécharger l'installeur : https://dl.espressif.com/dl/esp-idf/
-# Ou cloner manuellement :
-git clone --recursive https://github.com/espressif/esp-idf.git
+# Télécharger l'installeur offline : https://dl.espressif.com/dl/esp-idf/
+# Après installation, ouvrir "ESP-IDF PowerShell" ou :
 cd esp-idf
-.\install.bat esp32h2  # ou esp32c6
+.\install.bat esp32h2,esp32c6
 .\export.bat
 ```
 
-### 2. Utiliser l'exemple Zigbee Light officiel
-```powershell
-cd %IDF_PATH%\examples\zigbee\light_sample\light_bulb
-idf.py set-target esp32h2  # ou esp32c6
-idf.py menuconfig  # configurer les GPIO si nécessaire
+**Linux / macOS :**
+```bash
+git clone -b v5.3.1 --recursive https://github.com/espressif/esp-idf.git
+cd esp-idf
+./install.sh esp32h2,esp32c6
+. ./export.sh
+```
+
+### 2. Compiler et flasher un exemple
+
+```bash
+# Exemple WS2812 (recommandé pour débuter)
+cd esp-idf/ws2812
+idf.py set-target esp32h2      # ou esp32c6
 idf.py build
-idf.py -p COM3 flash monitor
+idf.py -p COM3 flash monitor   # remplacez COM3 par votre port
 ```
 
-### 3. Personnaliser pour vos LEDs
-Modifiez `main/esp_zb_light.c` pour adapter les GPIO PWM selon votre ruban (RGB/RGBW/WS2812).
+**Exemples disponibles :**
+- `esp-idf/ws2812/` : Ruban adressable WS2812/WS2812B (RGB full color)
+- `esp-idf/rgb/` : Ruban RGB analogique PWM (12V/24V)
+- `esp-idf/rgbw/` : Ruban RGBW analogique PWM (à venir)
+- `esp-idf/cct/` : Ruban bi-température blanc chaud/froid (à venir)
+- `esp-idf/mono/` : Ruban mono-canal blanc (à venir)
 
-**Documentation ESP-IDF Zigbee :**  
-https://docs.espressif.com/projects/esp-zigbee-sdk/
+### 3. Intégration Home Assistant
 
-## Pré-requis (pour ESPHome futur)
-- ESP-IDF ? 5.1 installé (`idf.py --version`)
-- ESPHome avec support Zigbee (pas encore disponible)
-- **Python 3.12** (Python 3.14 n'est pas compatible avec ESPHome actuellement)
+1. Dans Home Assistant : **Paramètres ? Appareils et services ? Zigbee (ZHA ou zigbee2mqtt) ? Ajouter un appareil**
+2. Alimentez votre ESP32, il rejoint automatiquement le réseau Zigbee
+3. L'ampoule apparaît, renommez-la et contrôlez On/Off/Dim/Couleur
 
-## Installation ESPHome
+---
 
-### Windows
-**?? Important : Python 3.14 n'est pas compatible. Utilisez Python 3.12.**
+## Matériel
 
-```powershell
-# Vérifier les versions Python installées
-py --list
+- ESP32-C6 ou ESP32-H2 (radio 802.15.4 nécessaire pour Zigbee)
+- Ruban LED 5 V adressable (WS2812) ou analogique 12/24 V (RGB/RGBW/CCT/mono)
+- 3/4 MOSFETs canal N (ou driver) pour rubans analogiques
+- Level shifter 5 V conseillé pour données WS2812
+- Alimentation adaptée, masse commune avec l'ESP
 
-# Installer ESPHome avec Python 3.12
-py -3.12 -m pip install esphome
+## GPIO par défaut (modifiables dans le code)
 
-# Vérifier l'installation
-py -3.12 -m esphome version
-```
+| Type | GPIO ESP32-H2/C6 |
+|------|------------------|
+| WS2812 Data | GPIO8 |
+| RGB R/G/B | GPIO4/5/6 |
+| RGBW R/G/B/W | GPIO4/5/6/7 |
+| CCT CW/WW | GPIO4/5 |
+| Mono W | GPIO4 |
 
-**Optionnel : Ajouter Python 3.12 Scripts au PATH** pour utiliser `esphome` directement :
-1. Ouvrir "Modifier les variables d'environnement système"
-2. Variables d'environnement ? PATH ? Modifier
-3. Ajouter `C:\Users\<VotreNom>\AppData\Local\Programs\Python\Python312\Scripts`
-4. Redémarrer PowerShell
+---
 
-Après, vous pouvez utiliser `esphome` au lieu de `py -3.12 -m esphome`.
+## Exemples ESPHome (pour utilisation future)
 
-### Linux / macOS
-```bash
-pip install esphome
-esphome version
-```
+Les YAMLs dans `examples/` et `examples/h2/` sont prêts pour quand ESPHome supportera Zigbee officiellement.
 
-## Configuration Wi-Fi (ESP32-C6 uniquement)
-Créez `secrets.yaml` dans le même dossier que vos YAMLs :
-```yaml
-wifi_ssid: "VotreSSID"
-wifi_password: "VotreMotDePasse"
-```
+### ESP32-C6 (Wi-Fi + Zigbee)
+- `zigbee_mono_12-24v.yaml`
+- `zigbee_cct_12-24v.yaml`
+- `zigbee_rgb_12-24v.yaml`
+- `zigbee_rgbw_12-24v.yaml`
+- `zigbee_ws2812_5v.yaml`
 
-**ESP32-H2** : ignore `secrets.yaml`, pas de Wi-Fi supporté.
+### ESP32-H2 (Zigbee pur, pas de Wi-Fi)
+- `examples/h2/zigbee_mono_12-24v_h2.yaml`
+- `examples/h2/zigbee_cct_12-24v_h2.yaml`
+- `examples/h2/zigbee_rgb_12-24v_h2.yaml`
+- `examples/h2/zigbee_rgbw_12-24v_h2.yaml`
+- `examples/h2/zigbee_ws2812_5v_h2.yaml`
 
-## Construction et flash (ESPHome CLI) - QUAND ZIGBEE SERA DISPONIBLE
-
-### Avec Python 3.12 (Windows)
-```powershell
-# Pour ESP32-C6 (avec Wi-Fi)
-py -3.12 -m esphome run examples/zigbee_rgbw_12-24v.yaml
-
-# Pour ESP32-H2 (Zigbee pur)
-py -3.12 -m esphome run examples/h2/zigbee_rgbw_12-24v_h2.yaml
-
-# Compiler seulement (sans flasher)
-py -3.12 -m esphome compile examples/h2/zigbee_rgbw_12-24v_h2.yaml
-
-# Flasher sur un port COM spécifique
-py -3.12 -m esphome run examples/h2/zigbee_rgbw_12-24v_h2.yaml --device COM3
-```
-
-### Si PATH configuré ou Linux/macOS
-```bash
-# Pour ESP32-C6 (avec Wi-Fi)
-esphome run examples/zigbee_rgbw_12-24v.yaml
-
-# Pour ESP32-H2 (Zigbee pur)
-esphome run examples/h2/zigbee_rgbw_12-24v_h2.yaml
-```
-
-## Alternative : Home Assistant ESPHome Dashboard
-Si vous avez Home Assistant installé :
-1. Paramètres ? Modules complémentaires ? Installer "ESPHome"
-2. Copier vos YAMLs dans `/config/esphome/`
-3. Compiler et flasher depuis l'interface web
-
-## Intégration Home Assistant (Zigbee)
-1. Mettre le coordinateur en mode appairage (ZHA ou zigbee2mqtt).
-2. Alimentez l'ESP : il se joint en tant qu'ampoule Zigbee (type selon YAML).
-3. Dans Home Assistant, renommez l'entité et testez On/Off, dimming, couleurs/CT/effets.
-4. Si Wi-Fi activé (C6) : l'appareil apparaît aussi dans ESPHome Dashboard pour logs/OTA.
-
-## Personnalisation
-- Ajustez les GPIO pour vos cartes (C6/H2, modules compacts).
-- Changez le nombre de LEDs pour WS2812 (`led_count`).
-- Adaptez les effets ou la durée de transition.
-- Sélectionnez un canal Zigbee peu encombré (11/15/20/25).
+---
 
 ## Comparaison C6 vs H2
 
@@ -176,34 +106,38 @@ Si vous avez Home Assistant installé :
 | Wi-Fi 2.4 GHz | ? | ? |
 | Zigbee (802.15.4) | ? | ? |
 | Bluetooth LE | ? | ? |
-| Logs OTA ESPHome | ? | ? |
-| Économie énergie | Moyen | Meilleur |
 | Prix | + cher | - cher |
+| Utilisation | Dev/debug | Production |
 
-**Recommandation : ESP32-C6 pour développement/debug, ESP32-H2 pour production si Wi-Fi inutile.**
+**Recommandation : ESP32-C6 pour flexibilité, ESP32-H2 pour production Zigbee pure.**
+
+---
 
 ## Dépannage
 
-### Erreur "Component not found: zigbee"
-? Le support Zigbee n'est pas encore disponible dans ESPHome. Utilisez **ESP-IDF pur** (voir section "Alternative ESP-IDF").
-
-### Erreur "cannot import name 'Str' from 'ast'" lors de l'installation
-? Vous utilisez Python 3.14. Installez Python 3.12 et utilisez `py -3.12 -m pip install esphome`.
-
-### ESP32-H2 : "WiFi requires component esp32_hosted"
-? L'ESP32-H2 ne supporte pas le Wi-Fi. Utilisez les exemples dans `examples/h2/` sans configuration Wi-Fi.
-
 ### Port COM non détecté
-? Installez les pilotes USB-to-Serial :
-- **CP210x** (Silicon Labs) : https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers
-- **CH340** (WCH) : http://www.wch-ic.com/downloads/CH341SER_EXE.html
+Installez les pilotes USB-to-Serial :
+- **CP210x** : https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers
+- **CH340** : http://www.wch-ic.com/downloads/CH341SER_EXE.html
 
-## Améliorations possibles
-- Ajouter un bouton physique (reset/appairage).
-- Ajouter un capteur de température interne pour surveiller l'ESP.
-- Exposer diagnostics Zigbee (LQI/RSSI) si supporté par la stack.
-- Fournir des presets de broches par carte (`sdkconfig.defaults`).
+### Erreur "idf.py: command not found"
+Lancez `export.bat` (Windows) ou `. ./export.sh` (Linux/macOS) dans le terminal avant de compiler.
 
-## État du dépôt
-Les YAML d'exemple sont prêts pour utilisation future lorsque ESPHome ajoutera le support Zigbee officiel.  
-**Pour utiliser Zigbee maintenant, utilisez ESP-IDF pur** (voir section "Alternative ESP-IDF").
+### L'appareil Zigbee n'apparaît pas dans Home Assistant
+- Vérifiez que le coordinateur est en mode appairage
+- Vérifiez les logs série : `idf.py monitor`
+- Réinitialisez l'ESP32 (bouton RESET)
+
+---
+
+## Documentation
+
+- **ESP-IDF Zigbee SDK** : https://docs.espressif.com/projects/esp-zigbee-sdk/
+- **ESP-IDF Getting Started** : https://docs.espressif.com/projects/esp-idf/
+- **Home Assistant ZHA** : https://www.home-assistant.io/integrations/zha/
+
+---
+
+## Licence
+
+Projet open-source pour la communauté. Contributions bienvenues !
