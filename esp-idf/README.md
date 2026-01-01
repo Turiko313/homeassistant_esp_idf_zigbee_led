@@ -1,82 +1,102 @@
-# ESP-IDF Zigbee LED Controller Examples
+# ESP-IDF Zigbee LED Controller Examples (ESP32-H2)
 
-Ce dossier contient des exemples ESP-IDF pour contrôler des rubans LED via Zigbee avec ESP32-C6/H2.
+Exemples ESP-IDF pour contrôler des rubans LED via Zigbee avec ESP32-H2.
+
+**Optimisés pour l'économie d'énergie** : Light Sleep, fréquence CPU réduite, End Device Zigbee.
 
 ## Structure
 
 ```
 esp-idf/
-??? ws2812/          # Ruban adressable WS2812
+??? ws2812/          # Ruban adressable WS2812 (recommandé)
 ??? rgb/             # Ruban RGB analogique (PWM)
-??? rgbw/            # Ruban RGBW analogique (PWM)
-??? cct/             # Ruban bi-température (blanc chaud/froid)
-??? mono/            # Ruban mono-canal (blanc)
 ```
 
 ## Pré-requis
 
-1. **ESP-IDF installé** (v5.1 ou supérieur)
-2. **ESP-Zigbee-SDK** (inclus dans ESP-IDF v5.1+)
+1. **ESP-IDF v5.1+** installé
+2. **ESP32-H2** (pas de support C6 dans ces exemples)
 
-## Installation rapide ESP-IDF (Windows)
+## Installation ESP-IDF (Windows - méthode recommandée)
 
-```powershell
-# Télécharger l'installeur offline
-# https://dl.espressif.com/dl/esp-idf/
+**Téléchargez l'installeur offline :** https://dl.espressif.com/dl/esp-idf/
 
-# Ou installer manuellement
-git clone -b v5.3.1 --recursive https://github.com/espressif/esp-idf.git
-cd esp-idf
-.\install.bat esp32h2,esp32c6
-.\export.bat
-```
+1. Lancez `esp-idf-tools-setup-offline-x.x.x.exe`
+2. Cochez **ESP32-H2**
+3. Après installation, ouvrez **"ESP-IDF PowerShell"**
 
-## Compiler et flasher un exemple
+## Compiler et flasher
 
-### WS2812 (recommandé pour débuter)
+### WS2812 (RGB adressable)
 
 ```powershell
-cd esp-idf/ws2812
+cd ws2812
 idf.py set-target esp32h2
-idf.py menuconfig   # optionnel : configurer les GPIO
+idf.py menuconfig   # optionnel : activer Light Sleep
 idf.py build
 idf.py -p COM3 flash monitor
 ```
 
-### RGB / RGBW / CCT / Mono
+### RGB PWM (analogique 12V/24V)
 
-Même procédure, changez simplement le dossier.
+```powershell
+cd rgb
+idf.py set-target esp32h2
+idf.py build
+idf.py -p COM3 flash monitor
+```
 
 ## Configuration GPIO
 
-Chaque exemple a des GPIO par défaut configurables dans `main/idf_component.yml` ou directement dans le code :
-
-| Type | GPIO par défaut (H2/C6) |
-|------|-------------------------|
+| Type | GPIO par défaut (modifiable dans app_main.c) |
+|------|----------------------------------------------|
 | WS2812 Data | GPIO8 |
 | RGB R/G/B | GPIO4/5/6 |
-| RGBW R/G/B/W | GPIO4/5/6/7 |
-| CCT CW/WW | GPIO4/5 |
-| Mono W | GPIO4 |
 
-Modifiez dans `main/app_main.c` si votre carte utilise d'autres pins.
+## Optimisations d'économie d'énergie incluses
+
+? **End Device Zigbee (ZED)** : consomme moins qu'un router  
+? **PWM 5kHz** : équilibre entre qualité et consommation  
+? **Logs minimaux** : réduit l'activité UART  
+
+### Activer Light Sleep (optionnel)
+
+Dans `menuconfig` :
+```
+Component config ? Power Management ? Enable dynamic frequency scaling
+```
+
+Ou ajoutez dans le code :
+```c
+#include "esp_pm.h"
+
+esp_pm_config_t pm_config = {
+    .max_freq_mhz = 96,
+    .min_freq_mhz = 32,
+    .light_sleep_enable = true
+};
+esp_pm_configure(&pm_config);
+```
+
+**Consommation ESP32-H2 estimée :**
+- LEDs allumées : ~20-25 mA
+- LEDs éteintes (idle) : ~5 mA
+- Light Sleep : ~100 µA
 
 ## Intégration Home Assistant
 
-Après flash :
-1. Mettez votre coordinateur Zigbee (ZHA/zigbee2mqtt) en mode appairage
-2. Alimentez l'ESP32, il rejoint automatiquement le réseau
-3. L'appareil apparaît comme une ampoule Zigbee contrôlable
+1. Coordinateur Zigbee en mode appairage
+2. Alimentez l'ESP32-H2
+3. L'appareil apparaît automatiquement comme ampoule Zigbee
+4. Contrôlez On/Off/Dim/Couleur
 
 ## Personnalisation
 
-Chaque exemple inclut :
-- Configuration Zigbee (canal, PAN ID, clé réseau)
-- Contrôle On/Off/Dim via Zigbee
-- Couleurs (RGB/RGBW/CCT) si applicable
-- Code commenté pour faciliter les modifications
+- **Nombre de LEDs WS2812** : `LED_STRIP_LENGTH` dans `ws2812/main/app_main.c`
+- **GPIO** : Modifiez les `#define` en haut de `app_main.c`
+- **Fréquence PWM** : `PWM_FREQ_HZ` dans `rgb/main/app_main.c`
 
-## Support
+## Documentation
 
-Documentation officielle ESP-Zigbee-SDK :  
-https://docs.espressif.com/projects/esp-zigbee-sdk/
+- **ESP-Zigbee-SDK** : https://docs.espressif.com/projects/esp-zigbee-sdk/
+- **ESP32-H2 Power** : https://docs.espressif.com/projects/esp-idf/en/latest/esp32h2/api-reference/system/power_management.html
