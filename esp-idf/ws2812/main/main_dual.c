@@ -13,6 +13,7 @@
 #include "esp_check.h"
 #include "ha/esp_zigbee_ha_standard.h"
 #include "led_strip.h"
+#include "led_strip_spi.h"
 
 // Configuration des 2 rubans LED
 #define LED_STRIP_1_GPIO      8
@@ -289,7 +290,7 @@ void app_main(void)
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_zb_platform_config(&config));
 
-    // Configuration ruban LED 1 (GPIO8)
+    // Configuration ruban LED 1 (GPIO8) - RMT
     led_strip_config_t strip1_config = {
         .strip_gpio_num = LED_STRIP_1_GPIO,
         .max_leds = LED_STRIP_1_LENGTH,
@@ -298,28 +299,34 @@ void app_main(void)
         .clk_src = RMT_CLK_SRC_DEFAULT,
         .resolution_hz = 10 * 1000 * 1000,
         .flags.with_dma = false,
-        .mem_block_symbols = 64,
     };
-    ESP_ERROR_CHECK(led_strip_new_rmt_device(&strip1_config, &rmt1_config, &led_strip_1));
-    light_states[0].strip = led_strip_1;
-    led_strip_clear(led_strip_1);
-    ESP_LOGI(TAG, "LED1 initialized on GPIO%d", LED_STRIP_1_GPIO);
+    esp_err_t ret1 = led_strip_new_rmt_device(&strip1_config, &rmt1_config, &led_strip_1);
+    if (ret1 == ESP_OK) {
+        light_states[0].strip = led_strip_1;
+        led_strip_clear(led_strip_1);
+        ESP_LOGI(TAG, "LED1 initialized on GPIO%d (RMT)", LED_STRIP_1_GPIO);
+    } else {
+        ESP_LOGE(TAG, "Failed to initialize LED1: %s", esp_err_to_name(ret1));
+    }
 
-    // Configuration ruban LED 2 (GPIO5) 
+    // Configuration ruban LED 2 (GPIO5) - SPI (plus compatible avec Zigbee)
     led_strip_config_t strip2_config = {
         .strip_gpio_num = LED_STRIP_2_GPIO,
         .max_leds = LED_STRIP_2_LENGTH,
     };
-    led_strip_rmt_config_t rmt2_config = {
-        .clk_src = RMT_CLK_SRC_DEFAULT,
-        .resolution_hz = 10 * 1000 * 1000,
-        .flags.with_dma = false,
-        .mem_block_symbols = 64,
+    led_strip_spi_config_t spi2_config = {
+        .clk_src = SPI_CLK_SRC_DEFAULT,
+        .spi_bus = SPI2_HOST,
+        .flags.with_dma = true,
     };
-    ESP_ERROR_CHECK(led_strip_new_rmt_device(&strip2_config, &rmt2_config, &led_strip_2));
-    light_states[1].strip = led_strip_2;
-    led_strip_clear(led_strip_2);
-    ESP_LOGI(TAG, "LED2 initialized on GPIO%d", LED_STRIP_2_GPIO);
+    esp_err_t ret2 = led_strip_new_spi_device(&strip2_config, &spi2_config, &led_strip_2);
+    if (ret2 == ESP_OK) {
+        light_states[1].strip = led_strip_2;
+        led_strip_clear(led_strip_2);
+        ESP_LOGI(TAG, "LED2 initialized on GPIO%d (SPI)", LED_STRIP_2_GPIO);
+    } else {
+        ESP_LOGE(TAG, "Failed to initialize LED2: %s", esp_err_to_name(ret2));
+    }
 
     ESP_LOGI(TAG, "Zigbee Dual WS2812 Light");
     ESP_LOGI(TAG, "LED1 - GPIO: %d, LEDs: %d", LED_STRIP_1_GPIO, LED_STRIP_1_LENGTH);
