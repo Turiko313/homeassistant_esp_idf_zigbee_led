@@ -1,7 +1,7 @@
 {
     "version":            "1.1",
     "project_name":       "zigbee_ws2812_light",
-    "project_version":    "0c96ff7-dirty",
+    "project_version":    "ed1079f-dirty",
     "project_path":       "C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812",
     "idf_path":           "C:/Espressif/frameworks/esp-idf-v5.3.1",
     "build_dir":          "C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/build",

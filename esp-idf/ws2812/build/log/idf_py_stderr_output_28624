@@ -1,4 +1,0 @@
-C:\Users\franc\AppData\Local\Temp\kconfgen_tmpys4331lb:1: warning: ignoring malformed line 'Configuration Zigbee pour ESP32-H2 (ESP-IDF 5.3.1)'
-C:\Users\franc\AppData\Local\Temp\kconfgen_tmpys4331lb:2: warning: ignoring malformed line 'Note: Zigbee requires esp-zigbee-lib external component (not in ESP-IDF 5.3.1 base)'
-C:\Users\franc\AppData\Local\Temp\kconfgen_tmpys4331lb:3: warning: ignoring malformed line 'Use menuconfig to enable necessary options if needed'
-C:\Users\franc\AppData\Local\Temp\kconfgen_tmpys4331lb:5: warning: ignoring malformed line 'These configs may not be available in standard IDF 5.3.1'
