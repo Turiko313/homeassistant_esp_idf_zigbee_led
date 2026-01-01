@@ -386,9 +386,12 @@ static void esp_zb_task(void *pvParameters)
 
     esp_zb_color_dimmable_light_cfg_t light_cfg = ESP_ZB_DEFAULT_COLOR_DIMMABLE_LIGHT_CONFIG();
     
-    light_cfg.color_cfg.color_mode = 0;
+    // Initialiser les valeurs de couleur pour support Hue/Saturation
+    light_cfg.color_cfg.current_hue = 0;
+    light_cfg.color_cfg.current_saturation = 254;
+    light_cfg.color_cfg.color_mode = 0;  // 0 = Hue/Saturation mode
     light_cfg.color_cfg.enhanced_color_mode = 0;
-    light_cfg.color_cfg.color_capabilities = 0x0001;
+    light_cfg.color_cfg.color_capabilities = 0x0001;  // Bit 0 = Hue/Saturation supported
     
     esp_zb_attribute_list_t *basic_cluster = esp_zb_basic_cluster_create(&light_cfg.basic_cfg);
     
