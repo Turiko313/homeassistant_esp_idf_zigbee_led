@@ -386,9 +386,7 @@ static void esp_zb_task(void *pvParameters)
 
     esp_zb_color_dimmable_light_cfg_t light_cfg = ESP_ZB_DEFAULT_COLOR_DIMMABLE_LIGHT_CONFIG();
     
-    // Initialiser les valeurs de couleur pour support Hue/Saturation
-    light_cfg.color_cfg.current_hue = 0;
-    light_cfg.color_cfg.current_saturation = 254;
+    // Configurer le mode couleur pour support Hue/Saturation
     light_cfg.color_cfg.color_mode = 0;  // 0 = Hue/Saturation mode
     light_cfg.color_cfg.enhanced_color_mode = 0;
     light_cfg.color_cfg.color_capabilities = 0x0001;  // Bit 0 = Hue/Saturation supported
@@ -458,7 +456,8 @@ void app_main(void)
     led_strip_clear(led_strip);
 
     ESP_LOGI(TAG, "Zigbee WS2812 Light avec effets - GPIO: %d, LEDs: %d", LED_STRIP_GPIO, LED_STRIP_LENGTH);
-    ESP_LOGI(TAG, "Démarrage: Lumière OFF - Prêt pour contrôle Zigbee");
+    ESP_LOGI(TAG, "Démarrage: Lumière OFF - Effet actif: %s", effect_names[light_state.current_effect]);
+    ESP_LOGI(TAG, "Effets disponibles: Rainbow, Strobe, Flicker, Pulse, Scan, Twinkle, Fireworks");
     
     // Démarrer avec lumière ÉTEINTE (contrôle via Home Assistant)
     // Pour changer l'effet par défaut, modifie: light_state.current_effect = EFFECT_RAINBOW;
