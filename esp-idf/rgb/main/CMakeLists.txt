@@ -1,3 +1,3 @@
 idf_component_register(SRCS "app_main.c"
                        INCLUDE_DIRS "."
-                       REQUIRES driver esp_zigbee_core esp_zigbee_cluster nvs_flash)
+                       REQUIRES driver esp_zb_lib nvs_flash)
