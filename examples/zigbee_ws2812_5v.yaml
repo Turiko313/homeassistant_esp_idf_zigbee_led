@@ -19,6 +19,18 @@ esp32:
 
 logger:
 
+# Wi-Fi optionnel (commentez ces 3 blocs pour mode Zigbee pur)
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "${node_name} Fallback"
+
+api:
+
+ota:
+  platform: esphome
+
 zigbee:
   channel: ${zigbee_channel}
   pan_id: ${zigbee_pan_id}
