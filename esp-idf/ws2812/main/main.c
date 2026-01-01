@@ -238,9 +238,11 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_attribute_list_t *color_cluster = esp_zb_color_control_cluster_create(&light_cfg.color_cfg);
     
     // Ajouter les attributs couleur au cluster pour que HA puisse les envoyer
-    esp_zb_cluster_add_attr(color_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID, ESP_ZB_ZCL_ATTR_TYPE_U8, 
+    esp_zb_cluster_add_attr(color_cluster, ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL, 
+                            ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID, ESP_ZB_ZCL_ATTR_TYPE_U8, 
                             ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE, &light_state.hue);
-    esp_zb_cluster_add_attr(color_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID, ESP_ZB_ZCL_ATTR_TYPE_U8,
+    esp_zb_cluster_add_attr(color_cluster, ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                            ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID, ESP_ZB_ZCL_ATTR_TYPE_U8,
                             ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE, &light_state.saturation);
 
     esp_zb_cluster_list_t *cluster_list = esp_zb_zcl_cluster_list_create();
