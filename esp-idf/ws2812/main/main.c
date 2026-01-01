@@ -14,7 +14,7 @@
 #include "led_strip.h"
 
 // Configuration
-#define LED_STRIP_GPIO      8
+#define LED_STRIP_GPIO      5      // Changé de 8 à 5
 #define LED_STRIP_LENGTH    60
 #define HA_ESP_LIGHT_ENDPOINT  10
 
