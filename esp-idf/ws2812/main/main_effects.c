@@ -66,20 +66,21 @@ static light_state_t light_state = {
     .effect_counter = 0
 };
 
-// Conversion HSV vers RGB (mais on enverra en GRB au LED strip)
+// Conversion HSV vers RGB (corrigée)
 static void hsv_to_rgb(uint8_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b)
 {
+    // Cas spécial : saturation = 0 ? couleur blanche/grise
     if (s == 0) {
-        // Gris (achromatique)
         *r = v;
         *g = v;
         *b = v;
         return;
     }
 
-    uint16_t h_scaled = h * 360 / 254;
-    uint8_t region = h_scaled / 60;
-    uint8_t remainder = (h_scaled - (region * 60)) * 6;
+    uint32_t hue = (uint32_t)h * 360 / 254;      // h (0-254) ? 0-360°
+    uint8_t region = hue / 60;
+    uint16_t rem = hue % 60;
+    uint8_t remainder = (rem * 255) / 60;        // CORRECTION: 0 à 255
     
     uint8_t p = (v * (255 - s)) >> 8;
     uint8_t q = (v * (255 - ((s * remainder) >> 8))) >> 8;
@@ -417,6 +418,14 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_attribute_list_t *on_off_cluster = esp_zb_on_off_cluster_create(&light_cfg.on_off_cfg);
     esp_zb_attribute_list_t *level_cluster = esp_zb_level_cluster_create(&light_cfg.level_cfg);
     esp_zb_attribute_list_t *color_cluster = esp_zb_color_control_cluster_create(&light_cfg.color_cfg);
+
+    // Ajouter les attributs couleur au cluster pour que HA puisse les envoyer
+    esp_zb_cluster_add_attr(color_cluster, ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL, 
+                            ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID, ESP_ZB_ZCL_ATTR_TYPE_U8, 
+                            ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE, &light_state.hue);
+    esp_zb_cluster_add_attr(color_cluster, ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                            ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID, ESP_ZB_ZCL_ATTR_TYPE_U8,
+                            ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE, &light_state.saturation);
 
     esp_zb_cluster_list_t *cluster_list = esp_zb_zcl_cluster_list_create();
     esp_zb_cluster_list_add_basic_cluster(cluster_list, basic_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
