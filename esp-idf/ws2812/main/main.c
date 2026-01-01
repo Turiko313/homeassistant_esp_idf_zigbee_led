@@ -1,6 +1,6 @@
 /*
  * ESP32-H2 Zigbee WS2812 LED Strip Controller
- * Version simple - Contrôle couleur RGB via Zigbee
+ * Version simple - Contrï¿½le couleur RGB via Zigbee
  */
 
 #include "main.h"
@@ -21,7 +21,7 @@
 static const char *TAG = "ZIGBEE_WS2812";
 static led_strip_handle_t led_strip = NULL;
 
-// État de la lumière
+// ï¿½tat de la lumiï¿½re
 typedef struct {
     bool on_off;
     uint8_t level;
@@ -33,13 +33,13 @@ static light_state_t light_state = {
     .on_off = false,
     .level = 128,
     .hue = 0,
-    .saturation = 0  // Blanc au démarrage
+    .saturation = 0  // Blanc au dï¿½marrage
 };
 
-// Conversion HSV vers RGB (corrigée)
+// Conversion HSV vers RGB (corrigï¿½e)
 static void hsv_to_rgb(uint8_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b)
 {
-    // Cas spécial : saturation = 0 ? couleur blanche/grise
+    // Cas spï¿½cial : saturation = 0 ? couleur blanche/grise
     if (s == 0) {
         *r = v;
         *g = v;
@@ -47,10 +47,10 @@ static void hsv_to_rgb(uint8_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, 
         return;
     }
 
-    uint32_t hue = (uint32_t)h * 360 / 254;      // h (0-254) ? 0-360°
+    uint32_t hue = (uint32_t)h * 360 / 254;      // h (0-254) ? 0-360ï¿½
     uint8_t region = hue / 60;
     uint16_t rem = hue % 60;
-    uint8_t remainder = (rem * 255) / 60;        // CORRECTION: 0 à 255
+    uint8_t remainder = (rem * 255) / 60;        // CORRECTION: 0 ï¿½ 255
     
     uint8_t p = (v * (255 - s)) >> 8;
     uint8_t q = (v * (255 - ((s * remainder) >> 8))) >> 8;
@@ -66,7 +66,7 @@ static void hsv_to_rgb(uint8_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, 
     }
 }
 
-// Mise à jour du ruban LED
+// Mise ï¿½ jour du ruban LED
 static void update_led_strip(void)
 {
     if (!light_state.on_off) {
@@ -157,6 +157,14 @@ static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id,
 }
 
 // Gestionnaire des signaux Zigbee
+static void bdb_start_network_steering_cb(uint8_t param)
+{
+    esp_err_t ret = esp_zb_bdb_start_top_level_commissioning(param);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Ã‰chec relance network steering : %s", esp_err_to_name(ret));
+    }
+}
+
 void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 {
     uint32_t *p_sg_p = signal_struct->p_app_signal;
@@ -172,24 +180,24 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
     case ESP_ZB_BDB_SIGNAL_DEVICE_REBOOT:
         if (err_status == ESP_OK) {
             if (esp_zb_bdb_is_factory_new()) {
-                ESP_LOGI(TAG, "Démarrage réseau (appairage)");
+                ESP_LOGI(TAG, "DÃ©marrage rÃ©seau (appairage)");
                 esp_zb_bdb_start_top_level_commissioning(ESP_ZB_BDB_MODE_NETWORK_STEERING);
             } else {
-                ESP_LOGI(TAG, "Redémarrage appareil");
+                ESP_LOGI(TAG, "RedÃ©marrage appareil");
             }
         } else {
-            ESP_LOGW(TAG, "Échec redémarrage: %s", esp_err_to_name(err_status));
+            ESP_LOGW(TAG, "Ã‰chec redÃ©marrage: %s", esp_err_to_name(err_status));
         }
         break;
     case ESP_ZB_BDB_SIGNAL_STEERING:
         if (err_status == ESP_OK) {
             esp_zb_ieee_addr_t extended_pan_id;
             esp_zb_get_extended_pan_id(extended_pan_id);
-            ESP_LOGI(TAG, "? Connecté au réseau Zigbee - PAN:0x%04hx, Canal:%d, Addr:0x%04hx",
+            ESP_LOGI(TAG, "ConnectÃ© au rÃ©seau Zigbee - PAN:0x%04hx, Canal:%d, Addr:0x%04hx",
                      esp_zb_get_pan_id(), esp_zb_get_current_channel(), esp_zb_get_short_address());
         } else {
-            ESP_LOGI(TAG, "Échec connexion réseau: %s", esp_err_to_name(err_status));
-            esp_zb_scheduler_alarm((esp_zb_callback_t)esp_zb_bdb_start_top_level_commissioning, ESP_ZB_BDB_MODE_NETWORK_STEERING, 1000);
+            ESP_LOGI(TAG, "Ã‰chec connexion rÃ©seau: %s", esp_err_to_name(err_status));
+            esp_zb_scheduler_alarm((esp_zb_callback_t)bdb_start_network_steering_cb, ESP_ZB_BDB_MODE_NETWORK_STEERING, 1000);
         }
         break;
     default:
@@ -198,21 +206,22 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
     }
 }
 
-// Tâche Zigbee principale
+// Tï¿½che Zigbee principale
 static void esp_zb_task(void *pvParameters)
 {
     esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZED_CONFIG();
     esp_zb_init(&zb_nwk_cfg);
 
-    // Configuration lumière couleur dimmable
     esp_zb_color_dimmable_light_cfg_t light_cfg = ESP_ZB_DEFAULT_COLOR_DIMMABLE_LIGHT_CONFIG();
+
+    // Force le mode Hue/Saturation (obligatoire pour la roue de couleurs dans HA/Z2M)
+    light_cfg.color_cfg.color_mode = 0;                 // 0 = Hue/Saturation
+    light_cfg.color_cfg.enhanced_color_mode = 0;        // 0 = standard Hue/Sat
+    light_cfg.color_cfg.color_capabilities = 0x0001;    // Bit 0 = Hue/Saturation supportÃ© (seulement HS)
+    light_cfg.color_cfg.current_hue = 0;                // Valeur initiale Hue
+    light_cfg.color_cfg.current_saturation = 0;         // Valeur initiale Saturation
     
-    // Configuration mode couleur Hue/Saturation
-    light_cfg.color_cfg.color_mode = 0;
-    light_cfg.color_cfg.enhanced_color_mode = 0;
-    light_cfg.color_cfg.color_capabilities = 0x0001;
-    
-    // Création des clusters
+    // CrÃ©ation des clusters
     esp_zb_attribute_list_t *basic_cluster = esp_zb_basic_cluster_create(&light_cfg.basic_cfg);
     
     char manufacturer[] = {11, 'E', 'S', 'P', '3', '2', '-', 'Z', 'i', 'g', 'b', 'e'};
@@ -227,6 +236,12 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_attribute_list_t *on_off_cluster = esp_zb_on_off_cluster_create(&light_cfg.on_off_cfg);
     esp_zb_attribute_list_t *level_cluster = esp_zb_level_cluster_create(&light_cfg.level_cfg);
     esp_zb_attribute_list_t *color_cluster = esp_zb_color_control_cluster_create(&light_cfg.color_cfg);
+    
+    // Ajouter les attributs couleur au cluster pour que HA puisse les envoyer
+    esp_zb_cluster_add_attr(color_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID, ESP_ZB_ZCL_ATTR_TYPE_U8, 
+                            ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE, &light_state.hue);
+    esp_zb_cluster_add_attr(color_cluster, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID, ESP_ZB_ZCL_ATTR_TYPE_U8,
+                            ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE, &light_state.saturation);
 
     esp_zb_cluster_list_t *cluster_list = esp_zb_zcl_cluster_list_create();
     esp_zb_cluster_list_add_basic_cluster(cluster_list, basic_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
@@ -246,30 +261,8 @@ static void esp_zb_task(void *pvParameters)
     };
     esp_zb_ep_list_add_ep(ep_list, cluster_list, endpoint_config);
     esp_zb_device_register(ep_list);
-    
-    // Initialisation explicite des attributs couleur pour Home Assistant
-    uint8_t color_mode = 0x00;
-    uint16_t color_capabilities = 0x0001;
-    uint8_t hue = 0;
-    uint8_t saturation = 0;
-    
-    esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT, ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
-                                  ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_COLOR_MODE_ID,
-                                  &color_mode, false);
-    
-    esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT, ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
-                                  ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_COLOR_CAPABILITIES_ID,
-                                  &color_capabilities, false);
-    
-    esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT, ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
-                                  ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID,
-                                  &hue, false);
-    
-    esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT, ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
-                                  ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID,
-                                  &saturation, false);
-    
-    ESP_LOGI(TAG, "Attributs couleur initialisés: mode=%d, capabilities=0x%04x", color_mode, color_capabilities);
+
+    ESP_LOGI(TAG, "Attributs couleur enregistrÃ©s: Hue/Saturation mode");
 
     esp_zb_core_action_handler_register(zb_action_handler);
     esp_zb_set_primary_network_channel_set(ESP_ZB_PRIMARY_CHANNEL_MASK);
@@ -312,6 +305,6 @@ void app_main(void)
     ESP_LOGI(TAG, "  GPIO: %d | LEDs: %d", LED_STRIP_GPIO, LED_STRIP_LENGTH);
     ESP_LOGI(TAG, "???????????????????????????????????????");
 
-    // Création de la tâche Zigbee
+    // Crï¿½ation de la tï¿½che Zigbee
     xTaskCreate(esp_zb_task, "Zigbee_main", 4096, NULL, 6, NULL);
 }
