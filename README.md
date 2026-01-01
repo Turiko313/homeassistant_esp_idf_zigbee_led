@@ -1,6 +1,10 @@
 # Zigbee LED Strip with ESP-IDF (ESP32-C6/H2) for Home Assistant
 
-Projet de base pour piloter un ruban LED (mono, CCT, RGB, RGBW ou WS2812) avec un SoC Zigbee ESP32-C6 / ESP32-H2 via ESP-IDF (ESPHome), intégrable dans Home Assistant comme ampoule Zigbee.
+?? **ATTENTION : Support Zigbee ESPHome en cours de développement**  
+Les exemples YAML fournis utilisent un composant `zigbee:` **non encore disponible** dans ESPHome stable ou dev.  
+Pour utiliser Zigbee avec ESP32-C6/H2 actuellement, vous devez utiliser **ESP-IDF pur** (voir section Alternative ESP-IDF).
+
+Projet de base pour piloter un ruban LED (mono, CCT, RGB, RGBW ou WS2812) avec un SoC Zigbee ESP32-C6 / ESP32-H2, intégrable dans Home Assistant comme ampoule Zigbee.
 
 ## Matériel
 - ESP32-C6 ou ESP32-H2 (radio 802.15.4 nécessaire pour Zigbee)
@@ -10,7 +14,17 @@ Projet de base pour piloter un ruban LED (mono, CCT, RGB, RGBW ou WS2812) avec u
 - Alimentation adaptée au ruban, masse commune avec l'ESP
 - Câblage : sorties PWM (LEDC) vers MOSFETs pour analogique ; 1 pin data pour WS2812
 
-## Exemples fournis (`examples/`)
+## État du support Zigbee ESPHome
+
+?? **Le composant `zigbee` n'est pas encore disponible dans ESPHome (janvier 2026).**
+
+Les exemples YAML fournis dans ce dépôt sont **prêts pour utilisation future** lorsque ESPHome ajoutera officiellement le support Zigbee.
+
+**Actuellement, pour utiliser Zigbee :**
+- Utiliser **ESP-IDF pur** (voir section "Alternative ESP-IDF" ci-dessous)
+- Ou attendre la release officielle ESPHome Zigbee (suivre https://github.com/esphome/esphome/discussions)
+
+## Exemples fournis (`examples/`) - POUR UTILISATION FUTURE
 
 ### ESP32-C6 (Wi-Fi + Zigbee)
 Choisissez le YAML selon le type de ruban :
@@ -38,9 +52,38 @@ Mode Zigbee pur ? pas de logs temps réel, flash via USB uniquement.
 - Bouton virtuel de reboot exposé (entité `button`)
 - Effets de lumière préconfigurés (random/strobe/flicker pour analogique, rainbow/twinkle/scan pour WS2812)
 
-## Pré-requis
+## Alternative ESP-IDF (méthode actuelle fonctionnelle)
+
+Pour utiliser Zigbee **maintenant** avec ESP32-C6/H2, utilisez ESP-IDF directement :
+
+### 1. Installation ESP-IDF (Windows)
+```powershell
+# Télécharger l'installeur : https://dl.espressif.com/dl/esp-idf/
+# Ou cloner manuellement :
+git clone --recursive https://github.com/espressif/esp-idf.git
+cd esp-idf
+.\install.bat esp32h2  # ou esp32c6
+.\export.bat
+```
+
+### 2. Utiliser l'exemple Zigbee Light officiel
+```powershell
+cd %IDF_PATH%\examples\zigbee\light_sample\light_bulb
+idf.py set-target esp32h2  # ou esp32c6
+idf.py menuconfig  # configurer les GPIO si nécessaire
+idf.py build
+idf.py -p COM3 flash monitor
+```
+
+### 3. Personnaliser pour vos LEDs
+Modifiez `main/esp_zb_light.c` pour adapter les GPIO PWM selon votre ruban (RGB/RGBW/WS2812).
+
+**Documentation ESP-IDF Zigbee :**  
+https://docs.espressif.com/projects/esp-zigbee-sdk/
+
+## Pré-requis (pour ESPHome futur)
 - ESP-IDF ? 5.1 installé (`idf.py --version`)
-- ESPHome ? 2023.12 avec support Zigbee
+- ESPHome avec support Zigbee (pas encore disponible)
 - **Python 3.12** (Python 3.14 n'est pas compatible avec ESPHome actuellement)
 
 ## Installation ESPHome
@@ -82,7 +125,7 @@ wifi_password: "VotreMotDePasse"
 
 **ESP32-H2** : ignore `secrets.yaml`, pas de Wi-Fi supporté.
 
-## Construction et flash (ESPHome CLI)
+## Construction et flash (ESPHome CLI) - QUAND ZIGBEE SERA DISPONIBLE
 
 ### Avec Python 3.12 (Windows)
 ```powershell
@@ -141,6 +184,9 @@ Si vous avez Home Assistant installé :
 
 ## Dépannage
 
+### Erreur "Component not found: zigbee"
+? Le support Zigbee n'est pas encore disponible dans ESPHome. Utilisez **ESP-IDF pur** (voir section "Alternative ESP-IDF").
+
 ### Erreur "cannot import name 'Str' from 'ast'" lors de l'installation
 ? Vous utilisez Python 3.14. Installez Python 3.12 et utilisez `py -3.12 -m pip install esphome`.
 
@@ -159,4 +205,5 @@ Si vous avez Home Assistant installé :
 - Fournir des presets de broches par carte (`sdkconfig.defaults`).
 
 ## État du dépôt
-Le code applicatif ESP-IDF/ESPHome est à ajouter selon vos besoins. Les YAML d'exemple sont prêts à l'emploi.
+Les YAML d'exemple sont prêts pour utilisation future lorsque ESPHome ajoutera le support Zigbee officiel.  
+**Pour utiliser Zigbee maintenant, utilisez ESP-IDF pur** (voir section "Alternative ESP-IDF").
