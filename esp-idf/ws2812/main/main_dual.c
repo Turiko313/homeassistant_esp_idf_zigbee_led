@@ -1,5 +1,6 @@
 /*
- * ESP32-H2 Zigbee WS2812 LED Strip Controller
+ * ESP32-H2 Zigbee Dual WS2812 LED Strip Controller
+ * 2 rubans LED indépendants sur GPIO8 et GPIO5
  * Based on ESP_Zigbee_quad_switch example
  */
 
@@ -13,27 +14,32 @@
 #include "ha/esp_zigbee_ha_standard.h"
 #include "led_strip.h"
 
-// Configuration
-#define LED_STRIP_GPIO      8
-#define LED_STRIP_LENGTH    60
-#define HA_ESP_LIGHT_ENDPOINT  10
+// Configuration des 2 rubans LED
+#define LED_STRIP_1_GPIO      8
+#define LED_STRIP_1_LENGTH    60
+#define LED_STRIP_1_ENDPOINT  10
 
-static const char *TAG = "ZIGBEE_WS2812";
-static led_strip_handle_t led_strip = NULL;
+#define LED_STRIP_2_GPIO      5
+#define LED_STRIP_2_LENGTH    60
+#define LED_STRIP_2_ENDPOINT  11
 
-// État de la lumière
+static const char *TAG = "ZIGBEE_DUAL_WS2812";
+static led_strip_handle_t led_strip_1 = NULL;
+static led_strip_handle_t led_strip_2 = NULL;
+
+// État des lumières
 typedef struct {
     bool on_off;
     uint8_t level;
     uint8_t hue;
     uint8_t saturation;
+    led_strip_handle_t strip;
+    uint8_t num_leds;
 } light_state_t;
 
-static light_state_t light_state = {
-    .on_off = false,
-    .level = 128,
-    .hue = 0,
-    .saturation = 254
+static light_state_t light_states[2] = {
+    {.on_off = false, .level = 128, .hue = 0, .saturation = 254, .strip = NULL, .num_leds = LED_STRIP_1_LENGTH},
+    {.on_off = false, .level = 128, .hue = 0, .saturation = 254, .strip = NULL, .num_leds = LED_STRIP_2_LENGTH}
 };
 
 // Conversion HSV vers RGB
@@ -57,20 +63,22 @@ static void hsv_to_rgb(uint8_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, 
     }
 }
 
-// Mise à jour du ruban LED
-static void update_led_strip(void)
+// Mise à jour d'un ruban LED
+static void update_led_strip(light_state_t *state)
 {
+    if (!state->strip) return;
+    
     uint8_t r, g, b;
     
-    if (!light_state.on_off) {
-        led_strip_clear(led_strip);
+    if (!state->on_off) {
+        led_strip_clear(state->strip);
     } else {
-        hsv_to_rgb(light_state.hue, light_state.saturation, light_state.level, &r, &g, &b);
-        for (int i = 0; i < LED_STRIP_LENGTH; i++) {
-            led_strip_set_pixel(led_strip, i, r, g, b);
+        hsv_to_rgb(state->hue, state->saturation, state->level, &r, &g, &b);
+        for (int i = 0; i < state->num_leds; i++) {
+            led_strip_set_pixel(state->strip, i, r, g, b);
         }
     }
-    led_strip_refresh(led_strip);
+    led_strip_refresh(state->strip);
 }
 
 // Gestionnaire des attributs Zigbee
@@ -78,49 +86,66 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
 {
     esp_err_t ret = ESP_OK;
     bool light_changed = false;
+    light_state_t *state = NULL;
 
     ESP_RETURN_ON_FALSE(message, ESP_FAIL, TAG, "Message vide");
     ESP_RETURN_ON_FALSE(message->info.status == ESP_ZB_ZCL_STATUS_SUCCESS, ESP_ERR_INVALID_ARG, TAG,
                         "Message reçu : statut d'erreur (%d)", message->info.status);
 
-    ESP_LOGI(TAG, "Message reçu : endpoint(%d), cluster(0x%x), attribut(0x%x), taille données(%d)",
-             message->info.dst_endpoint, message->info.cluster, message->attribute.id, message->attribute.data.size);
+    // Déterminer quel ruban LED est ciblé
+    if (message->info.dst_endpoint == LED_STRIP_1_ENDPOINT) {
+        state = &light_states[0];
+    } else if (message->info.dst_endpoint == LED_STRIP_2_ENDPOINT) {
+        state = &light_states[1];
+    } else {
+        return ESP_OK;
+    }
 
-    if (message->info.dst_endpoint == HA_ESP_LIGHT_ENDPOINT) {
-        if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_ON_OFF) {
-            if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID &&
-                message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL) {
-                light_state.on_off = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state.on_off;
-                ESP_LOGI(TAG, "Light set to %s", light_state.on_off ? "ON" : "OFF");
-                light_changed = true;
-            }
+    ESP_LOGI(TAG, "LED%d - Message reçu : cluster(0x%x), attribut(0x%x)",
+             message->info.dst_endpoint - LED_STRIP_1_ENDPOINT + 1,
+             message->info.cluster, message->attribute.id);
+
+    if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_ON_OFF) {
+        if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID &&
+            message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL) {
+            state->on_off = message->attribute.data.value ? *(bool *)message->attribute.data.value : state->on_off;
+            ESP_LOGI(TAG, "LED%d set to %s", 
+                     message->info.dst_endpoint - LED_STRIP_1_ENDPOINT + 1,
+                     state->on_off ? "ON" : "OFF");
+            light_changed = true;
         }
-        else if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL) {
-            if (message->attribute.id == ESP_ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID &&
-                message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
-                light_state.level = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : light_state.level;
-                ESP_LOGI(TAG, "Light level set to %d", light_state.level);
-                light_changed = true;
-            }
+    }
+    else if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL) {
+        if (message->attribute.id == ESP_ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID &&
+            message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
+            state->level = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : state->level;
+            ESP_LOGI(TAG, "LED%d level set to %d",
+                     message->info.dst_endpoint - LED_STRIP_1_ENDPOINT + 1,
+                     state->level);
+            light_changed = true;
         }
-        else if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL) {
-            if (message->attribute.id == ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID &&
-                message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
-                light_state.hue = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : light_state.hue;
-                ESP_LOGI(TAG, "Light hue set to %d", light_state.hue);
-                light_changed = true;
-            }
-            else if (message->attribute.id == ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID &&
-                     message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
-                light_state.saturation = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : light_state.saturation;
-                ESP_LOGI(TAG, "Light saturation set to %d", light_state.saturation);
-                light_changed = true;
-            }
+    }
+    else if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL) {
+        if (message->attribute.id == ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID &&
+            message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
+            state->hue = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : state->hue;
+            ESP_LOGI(TAG, "LED%d hue set to %d",
+                     message->info.dst_endpoint - LED_STRIP_1_ENDPOINT + 1,
+                     state->hue);
+            light_changed = true;
+        }
+        else if (message->attribute.id == ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID &&
+                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
+            state->saturation = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : state->saturation;
+            ESP_LOGI(TAG, "LED%d saturation set to %d",
+                     message->info.dst_endpoint - LED_STRIP_1_ENDPOINT + 1,
+                     state->saturation);
+            light_changed = true;
         }
     }
 
     if (light_changed) {
-        update_led_strip();
+        update_led_strip(state);
     }
 
     return ret;
@@ -187,26 +212,23 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
     }
 }
 
-// Tâche Zigbee principale
-static void esp_zb_task(void *pvParameters)
+// Créer un endpoint de lumière
+static void create_light_endpoint(esp_zb_ep_list_t *ep_list, uint8_t endpoint, const char *model_suffix)
 {
-    esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZED_CONFIG();
-    esp_zb_init(&zb_nwk_cfg);
-
-    // Configuration des clusters pour lumière couleur dimmable
     esp_zb_color_dimmable_light_cfg_t light_cfg = ESP_ZB_DEFAULT_COLOR_DIMMABLE_LIGHT_CONFIG();
     
     // Forcer le mode couleur Hue/Saturation
-    light_cfg.color_cfg.color_mode = 0;  // 0 = Hue/Saturation mode
+    light_cfg.color_cfg.color_mode = 0;
     light_cfg.color_cfg.enhanced_color_mode = 0;
-    light_cfg.color_cfg.color_capabilities = 0x0001;  // Hue/Saturation capable
+    light_cfg.color_cfg.color_capabilities = 0x0001;
     
-    // Création des clusters
     esp_zb_attribute_list_t *basic_cluster = esp_zb_basic_cluster_create(&light_cfg.basic_cfg);
     
-    // Ajout des attributs Manufacturer et Model pour identification
-    char manufacturer[] = {11, 'E', 'S', 'P', '3', '2', '-', 'Z', 'i', 'g', 'b', 'e'};  // "ESP32-Zigbee"
-    char model[] = {12, 'W', 'S', '2', '8', '1', '2', '_', 'L', 'i', 'g', 'h', 't'};     // "WS2812_Light"
+    // Manufacturer et Model spécifiques pour chaque endpoint
+    char manufacturer[] = {11, 'E', 'S', 'P', '3', '2', '-', 'Z', 'i', 'g', 'b', 'e'};
+    char model[16];
+    int model_len = snprintf((char*)&model[1], 15, "WS2812_%s", model_suffix);
+    model[0] = model_len;
     
     esp_zb_basic_cluster_add_attr(basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_MANUFACTURER_NAME_ID, manufacturer);
     esp_zb_basic_cluster_add_attr(basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_MODEL_IDENTIFIER_ID, model);
@@ -218,7 +240,6 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_attribute_list_t *level_cluster = esp_zb_level_cluster_create(&light_cfg.level_cfg);
     esp_zb_attribute_list_t *color_cluster = esp_zb_color_control_cluster_create(&light_cfg.color_cfg);
 
-    // Création de la liste de clusters
     esp_zb_cluster_list_t *cluster_list = esp_zb_zcl_cluster_list_create();
     esp_zb_cluster_list_add_basic_cluster(cluster_list, basic_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     esp_zb_cluster_list_add_identify_cluster(cluster_list, identify_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
@@ -228,17 +249,29 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_cluster_list_add_level_cluster(cluster_list, level_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     esp_zb_cluster_list_add_color_control_cluster(cluster_list, color_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
 
-    // Création de l'endpoint
-    esp_zb_ep_list_t *ep_list = esp_zb_ep_list_create();
     esp_zb_endpoint_config_t endpoint_config = {
-        .endpoint = HA_ESP_LIGHT_ENDPOINT,
+        .endpoint = endpoint,
         .app_profile_id = ESP_ZB_AF_HA_PROFILE_ID,
         .app_device_id = ESP_ZB_HA_COLOR_DIMMABLE_LIGHT_DEVICE_ID,
         .app_device_version = 0
     };
+    
     esp_zb_ep_list_add_ep(ep_list, cluster_list, endpoint_config);
-    esp_zb_device_register(ep_list);
+}
 
+// Tâche Zigbee principale
+static void esp_zb_task(void *pvParameters)
+{
+    esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZED_CONFIG();
+    esp_zb_init(&zb_nwk_cfg);
+
+    esp_zb_ep_list_t *ep_list = esp_zb_ep_list_create();
+    
+    // Créer 2 endpoints (2 lumières indépendantes)
+    create_light_endpoint(ep_list, LED_STRIP_1_ENDPOINT, "LED1");
+    create_light_endpoint(ep_list, LED_STRIP_2_ENDPOINT, "LED2");
+    
+    esp_zb_device_register(ep_list);
     esp_zb_core_action_handler_register(zb_action_handler);
     esp_zb_set_primary_network_channel_set(ESP_ZB_PRIMARY_CHANNEL_MASK);
     ESP_ERROR_CHECK(esp_zb_start(false));
@@ -256,18 +289,35 @@ void app_main(void)
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_zb_platform_config(&config));
 
-    // Configuration WS2812
-    led_strip_config_t strip_config = {
-        .strip_gpio_num = LED_STRIP_GPIO,
-        .max_leds = LED_STRIP_LENGTH,
+    // Configuration ruban LED 1 (GPIO8)
+    led_strip_config_t strip1_config = {
+        .strip_gpio_num = LED_STRIP_1_GPIO,
+        .max_leds = LED_STRIP_1_LENGTH,
     };
-    led_strip_rmt_config_t rmt_config = {
+    led_strip_rmt_config_t rmt1_config = {
         .resolution_hz = 10 * 1000 * 1000,
     };
-    ESP_ERROR_CHECK(led_strip_new_rmt_device(&strip_config, &rmt_config, &led_strip));
-    led_strip_clear(led_strip);
+    ESP_ERROR_CHECK(led_strip_new_rmt_device(&strip1_config, &rmt1_config, &led_strip_1));
+    light_states[0].strip = led_strip_1;
+    led_strip_clear(led_strip_1);
 
-    ESP_LOGI(TAG, "Zigbee WS2812 Light - GPIO: %d, LEDs: %d", LED_STRIP_GPIO, LED_STRIP_LENGTH);
+    // Configuration ruban LED 2 (GPIO5)
+    led_strip_config_t strip2_config = {
+        .strip_gpio_num = LED_STRIP_2_GPIO,
+        .max_leds = LED_STRIP_2_LENGTH,
+    };
+    led_strip_rmt_config_t rmt2_config = {
+        .resolution_hz = 10 * 1000 * 1000,
+        .clk_src = RMT_CLK_SRC_DEFAULT,
+        .flags.with_dma = false,
+    };
+    ESP_ERROR_CHECK(led_strip_new_rmt_device(&strip2_config, &rmt2_config, &led_strip_2));
+    light_states[1].strip = led_strip_2;
+    led_strip_clear(led_strip_2);
+
+    ESP_LOGI(TAG, "Zigbee Dual WS2812 Light");
+    ESP_LOGI(TAG, "LED1 - GPIO: %d, LEDs: %d", LED_STRIP_1_GPIO, LED_STRIP_1_LENGTH);
+    ESP_LOGI(TAG, "LED2 - GPIO: %d, LEDs: %d", LED_STRIP_2_GPIO, LED_STRIP_2_LENGTH);
 
     // Création de la tâche Zigbee
     if (xTaskCreate(esp_zb_task, "Zigbee_main", 4096, NULL, 6, NULL) != pdPASS) {
