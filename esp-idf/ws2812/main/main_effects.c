@@ -313,12 +313,20 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
                 light_state.hue = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : light_state.hue;
                 ESP_LOGI(TAG, "Light hue set to %d", light_state.hue);
+                // Rapporter la valeur à Zigbee
+                esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT, ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                                              ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID,
+                                              &light_state.hue, false);
                 light_changed = true;
             }
             else if (message->attribute.id == ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID &&
                      message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
                 light_state.saturation = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : light_state.saturation;
                 ESP_LOGI(TAG, "Light saturation set to %d", light_state.saturation);
+                // Rapporter la valeur à Zigbee
+                esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT, ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                                              ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID,
+                                              &light_state.saturation, false);
                 light_changed = true;
             }
         }
@@ -518,66 +526,14 @@ void app_main(void)
     led_strip_clear(led_strip);
     led_strip_refresh(led_strip);
 
-    // TEST: Vérifier que le ruban LED fonctionne avec l'ordre GRB
-    ESP_LOGI(TAG, "TEST LED STRIP - ROUGE (GRB) pendant 2 secondes");
-    for (int i = 0; i < LED_STRIP_LENGTH; i++) {
-        led_strip_set_pixel(led_strip, i, 0, 50, 0);  // G, R, B = Rouge
-    }
-    led_strip_refresh(led_strip);
-    vTaskDelay(pdMS_TO_TICKS(2000));
+    ESP_LOGI(TAG, "???????????????????????????????????????");
+    ESP_LOGI(TAG, "  Zigbee WS2812 LED Strip Controller");
+    ESP_LOGI(TAG, "  GPIO: %d | LEDs: %d", LED_STRIP_GPIO, LED_STRIP_LENGTH);
+    ESP_LOGI(TAG, "???????????????????????????????????????");
     
-    ESP_LOGI(TAG, "TEST LED STRIP - VERT (GRB) pendant 2 secondes");
-    for (int i = 0; i < LED_STRIP_LENGTH; i++) {
-        led_strip_set_pixel(led_strip, i, 50, 0, 0);  // G, R, B = Vert
-    }
-    led_strip_refresh(led_strip);
-    vTaskDelay(pdMS_TO_TICKS(2000));
-    
-    ESP_LOGI(TAG, "TEST LED STRIP - BLEU (GRB) pendant 2 secondes");
-    for (int i = 0; i < LED_STRIP_LENGTH; i++) {
-        led_strip_set_pixel(led_strip, i, 0, 0, 50);  // G, R, B = Bleu
-    }
-    led_strip_refresh(led_strip);
-    vTaskDelay(pdMS_TO_TICKS(2000));
-    
-    led_strip_clear(led_strip);
-    led_strip_refresh(led_strip);
-
-    ESP_LOGI(TAG, "Zigbee WS2812 Light avec effets - GPIO: %d, LEDs: %d", LED_STRIP_GPIO, LED_STRIP_LENGTH);
-    ESP_LOGI(TAG, "Démarrage: Lumière OFF - Effet actif: %s", effect_names[light_state.current_effect]);
-    ESP_LOGI(TAG, "Effets disponibles: Rainbow, Strobe, Flicker, Pulse, Scan, Twinkle, Fireworks");
-    
-    // TEST MANUEL: Simuler un changement de couleur depuis Zigbee
-    ESP_LOGI(TAG, "TEST MANUEL - Allumage en ROUGE pendant 3 secondes");
-    light_state.on_off = true;
-    light_state.hue = 0;        // Rouge
-    light_state.saturation = 254;  // Couleur saturée
-    light_state.level = 128;
-    update_led_strip();
-    vTaskDelay(pdMS_TO_TICKS(3000));
-    
-    ESP_LOGI(TAG, "TEST MANUEL - Changement en VERT pendant 3 secondes");
-    light_state.hue = 85;       // Vert (85/254 * 360 ? 120°)
-    light_state.saturation = 254;
-    update_led_strip();
-    vTaskDelay(pdMS_TO_TICKS(3000));
-    
-    ESP_LOGI(TAG, "TEST MANUEL - Changement en BLEU pendant 3 secondes");
-    light_state.hue = 170;      // Bleu (170/254 * 360 ? 240°)
-    light_state.saturation = 254;
-    update_led_strip();
-    vTaskDelay(pdMS_TO_TICKS(3000));
-    
-    ESP_LOGI(TAG, "TEST MANUEL - Extinction");
-    light_state.on_off = false;
-    update_led_strip();
-    
-    // Démarrer avec lumière ÉTEINTE (contrôle via Home Assistant)
-    // Pour changer l'effet par défaut, modifie: light_state.current_effect = EFFECT_RAINBOW;
-
-    // Création de la tâche d'animation
+    // Créer la tâche d'animation
     xTaskCreate(effect_task, "LED_Effects", 2048, NULL, 5, NULL);
     
-    // Création de la tâche Zigbee
+    // Créer la tâche Zigbee
     xTaskCreate(esp_zb_task, "Zigbee_main", 4096, NULL, 6, NULL);
 }
