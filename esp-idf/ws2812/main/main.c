@@ -9,7 +9,7 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_check.h"
-#include "esp_zigbee_core.h"
+#include "ha/esp_zigbee_ha_standard.h"
 #include "led_strip.h"
 
 // Configuration
@@ -193,33 +193,23 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_init(&zb_nwk_cfg);
 
     // Configuration des clusters pour lumière couleur dimmable
-    esp_zb_on_off_cluster_cfg_t on_off_cfg = {.on_off = light_state.on_off};
-    esp_zb_level_cluster_cfg_t level_cfg = {.current_level = light_state.level};
-    esp_zb_color_control_cluster_cfg_t color_cfg = {
-        .current_hue = light_state.hue,
-        .current_saturation = light_state.saturation,
-        .color_mode = 0,
-        .color_capabilities = 0x0001
-    };
-    esp_zb_basic_cluster_cfg_t basic_cfg = {
-        .zcl_version = ESP_ZB_ZCL_BASIC_ZCL_VERSION_DEFAULT_VALUE,
-        .power_source = 0x01
-    };
-    esp_zb_identify_cluster_cfg_t identify_cfg = {
-        .identify_time = 0
-    };
-
+    esp_zb_color_dimmable_light_cfg_t light_cfg = ESP_ZB_DEFAULT_COLOR_DIMMABLE_LIGHT_CONFIG();
+    
     // Création des clusters
-    esp_zb_attribute_list_t *basic_cluster = esp_zb_basic_cluster_create(&basic_cfg);
-    esp_zb_attribute_list_t *identify_cluster = esp_zb_identify_cluster_create(&identify_cfg);
-    esp_zb_attribute_list_t *on_off_cluster = esp_zb_on_off_cluster_create(&on_off_cfg);
-    esp_zb_attribute_list_t *level_cluster = esp_zb_level_cluster_create(&level_cfg);
-    esp_zb_attribute_list_t *color_cluster = esp_zb_color_control_cluster_create(&color_cfg);
+    esp_zb_attribute_list_t *basic_cluster = esp_zb_basic_cluster_create(&light_cfg.basic_cfg);
+    esp_zb_attribute_list_t *identify_cluster = esp_zb_identify_cluster_create(&light_cfg.identify_cfg);
+    esp_zb_attribute_list_t *groups_cluster = esp_zb_groups_cluster_create(&light_cfg.groups_cfg);
+    esp_zb_attribute_list_t *scenes_cluster = esp_zb_scenes_cluster_create(&light_cfg.scenes_cfg);
+    esp_zb_attribute_list_t *on_off_cluster = esp_zb_on_off_cluster_create(&light_cfg.on_off_cfg);
+    esp_zb_attribute_list_t *level_cluster = esp_zb_level_cluster_create(&light_cfg.level_cfg);
+    esp_zb_attribute_list_t *color_cluster = esp_zb_color_control_cluster_create(&light_cfg.color_cfg);
 
     // Création de la liste de clusters
     esp_zb_cluster_list_t *cluster_list = esp_zb_zcl_cluster_list_create();
     esp_zb_cluster_list_add_basic_cluster(cluster_list, basic_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     esp_zb_cluster_list_add_identify_cluster(cluster_list, identify_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    esp_zb_cluster_list_add_groups_cluster(cluster_list, groups_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    esp_zb_cluster_list_add_scenes_cluster(cluster_list, scenes_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     esp_zb_cluster_list_add_on_off_cluster(cluster_list, on_off_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     esp_zb_cluster_list_add_level_cluster(cluster_list, level_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
     esp_zb_cluster_list_add_color_control_cluster(cluster_list, color_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
