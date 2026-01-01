@@ -4,18 +4,18 @@
 #include "esp_zigbee_core.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/queue.h"  // Ajout pour la file d'attente utilisée dans le code
-#include "driver/gpio.h"
 
 /* Configuration Zigbee */
 #define INSTALLCODE_POLICY_ENABLE       false
+
 #ifdef CONFIG_ZB_ZED
 #define ESP_ZB_SLEEP_MAXIMUM_THRESHOLD_MS 86400000U
-#endif         
+#endif
+
 #define ED_AGING_TIMEOUT                ESP_ZB_ED_AGING_TIMEOUT_64MIN
 #define ED_KEEP_ALIVE                   3000
 
-/* Endpoint pour la lumi�re */
+/* Endpoint pour la lumière */
 #define HA_ESP_LIGHT_ENDPOINT           10
 
 /* Masque des canaux primaires Zigbee */
@@ -32,13 +32,13 @@
         },                                                          \
     }
 
-/* Configuration par d�faut de la radio Zigbee */
+/* Configuration par défaut de la radio Zigbee (ESP32-H2 RCP mode) */
 #define ESP_ZB_DEFAULT_RADIO_CONFIG()                           \
     {                                                           \
-        .radio_mode = ZB_RADIO_MODE_NATIVE,                     \
+        .radio_mode = RADIO_MODE_NATIVE,                        \
     }
 
-/* Configuration par d�faut de l'h�te */
+/* Configuration par défaut de l'hôte */
 #define ESP_ZB_DEFAULT_HOST_CONFIG()                            \
     {                                                           \
         .host_connection_mode = ZB_HOST_CONNECTION_MODE_NONE,   \
