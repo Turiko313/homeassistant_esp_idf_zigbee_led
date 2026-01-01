@@ -15,14 +15,14 @@
 -- Detecting CXX compile features
 -- Detecting CXX compile features - done
 -- Building ESP-IDF components for target esp32h2
-Dependencies lock doesn't exist, solving dependencies.
-......NOTICE: Updating lock file at C:\Users\franc\source\repos\Turiko313\homeassistant_esp_idf_zigbee_led\esp-idf\ws2812\dependencies.lock
 Processing 4 dependencies:
 [1/4] espressif/esp-zboss-lib (1.6.4)
-[2/4] espressif/esp-zigbee-lib (1.6.8)
+[2/4] espressif/esp-zigbee-lib (1.6.4)
 [3/4] espressif/led_strip (2.5.5)
 [4/4] idf (5.3.1)
 -- Project sdkconfig file C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/sdkconfig
+Loading defaults file C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/sdkconfig.defaults...
+warning: unknown kconfig symbol 'IEEE802154_RECEIVE_DONE_HANDLER' assigned to 'y' in C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/sdkconfig.defaults
 -- Adding linker script C:/Espressif/frameworks/esp-idf-v5.3.1/components/riscv/ld/rom.api.ld
 -- Found Python3: C:/Espressif/python_env/idf5.3_py3.11_env/Scripts/python.exe (found version "3.11.2") found components: Interpreter 
 -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
@@ -30,7 +30,7 @@ Processing 4 dependencies:
 -- Found Threads: TRUE  
 -- Performing Test C_COMPILER_SUPPORTS_WFORMAT_SIGNEDNESS
 -- Performing Test C_COMPILER_SUPPORTS_WFORMAT_SIGNEDNESS - Success
--- App "zigbee_ws2812_light" version: b641a4b-dirty
+-- App "zigbee_ws2812_light" version: 2d3b8ab-dirty
 -- Adding linker script C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/build/esp-idf/esp_system/ld/memory.ld
 -- Adding linker script C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/build/esp-idf/esp_system/ld/sections.ld.in
 -- Adding linker script C:/Espressif/frameworks/esp-idf-v5.3.1/components/esp_rom/esp32h2/ld/esp32h2.rom.ld

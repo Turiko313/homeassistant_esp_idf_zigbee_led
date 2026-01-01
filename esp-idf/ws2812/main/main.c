@@ -3,6 +3,7 @@
  * Based on ESP_Zigbee_quad_switch example
  */
 
+#include "main.h"
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"

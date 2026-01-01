@@ -11,6 +11,7 @@ extern "C" {
 
 #include "esp_err.h"
 #include "esp_zigbee_type.h"
+#include "zcl/esp_zigbee_zcl_common.h"
 
 /**
  * @brief The basic zcl information for OTA command
@@ -50,7 +51,7 @@ typedef struct esp_zb_ota_file_header_s {
     uint32_t file_version;                     /*!< File version represents the release and build number of the image’s application and stack */
     uint32_t image_size;                       /*!< Total image size in bytes transferred from the server to the client */
     uint16_t field_control;                    /*!< Indicate whether additional optional information */
-    esp_zb_ota_file_optional_t optional;       /*!< The optional header controlled by the filed control, @see esp_zb_ota_file_optional_t */
+    esp_zb_ota_file_optional_t optional;       /*!< The optional header controlled by the filed contorl, @see esp_zb_ota_file_optional_t */
 } esp_zb_ota_file_header_t;
 
 /**

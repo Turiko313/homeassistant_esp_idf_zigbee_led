@@ -1,12 +1,12 @@
 {
     "version":            "1.1",
     "project_name":       "zigbee_ws2812_light",
-    "project_version":    "b641a4b-dirty",
+    "project_version":    "2d3b8ab-dirty",
     "project_path":       "C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812",
     "idf_path":           "C:/Espressif/frameworks/esp-idf-v5.3.1",
     "build_dir":          "C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/build",
     "config_file":        "C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/sdkconfig",
-    "config_defaults":    "",
+    "config_defaults":    "C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/sdkconfig.defaults",
     "bootloader_elf":     "C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/build/bootloader/bootloader.elf",
     "app_elf":            "zigbee_ws2812_light.elf",
     "app_bin":            "zigbee_ws2812_light.bin",
@@ -1016,7 +1016,7 @@
             "managed_priv_reqs": [],
             "file": "",
             "sources": [],
-            "include_dirs": []
+            "include_dirs": [ "include" ]
         },
         "espressif__esp-zigbee-lib": {
             "alias": "idf::espressif__esp-zigbee-lib",
@@ -1031,7 +1031,7 @@
             "managed_priv_reqs": [],
             "file": "",
             "sources": [],
-            "include_dirs": []
+            "include_dirs": [ "include" ]
         },
         "espressif__led_strip": {
             "alias": "idf::espressif__led_strip",
@@ -2833,7 +2833,7 @@
             "priv_reqs": [],
             "managed_reqs": [],
             "managed_priv_reqs": [],
-            "include_dirs": []
+            "include_dirs": [ "include" ]
         },
         "espressif__esp-zigbee-lib": {
             "alias": "idf::espressif__esp-zigbee-lib",
@@ -2845,7 +2845,7 @@
             "priv_reqs": [],
             "managed_reqs": [],
             "managed_priv_reqs": [],
-            "include_dirs": []
+            "include_dirs": [ "include" ]
         },
         "espressif__led_strip": {
             "alias": "idf::espressif__led_strip",
