@@ -1,0 +1,50 @@
+substitutions:
+  node_name: zigbee-cct-12-24v-h2
+  friendly_name: "Zigbee CCT 12-24V H2"
+  zigbee_channel: "15"
+  zigbee_pan_id: "0x1AAA"
+  zigbee_ext_pan_id: "00:11:22:33:44:55:66:77"
+  zigbee_network_key: "[0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F]"
+
+esphome:
+  name: ${node_name}
+  platformio_options:
+    board_build.flash_mode: dio
+
+esp32:
+  board: esp32-h2-devkitm-1
+  framework:
+    type: esp-idf
+
+logger:
+
+zigbee:
+  channel: ${zigbee_channel}
+  pan_id: ${zigbee_pan_id}
+  extended_pan_id: ${zigbee_ext_pan_id}
+  network_key: ${zigbee_network_key}
+
+button:
+  - platform: restart
+    name: "${friendly_name} Reboot"
+
+output:
+  - platform: ledc
+    pin: GPIO4
+    id: cw_out
+  - platform: ledc
+    pin: GPIO5
+    id: ww_out
+
+light:
+  - platform: cwww
+    name: "${friendly_name}"
+    cold_white: cw_out
+    warm_white: ww_out
+    cold_white_color_temperature: 6500 K
+    warm_white_color_temperature: 2700 K
+    constant_brightness: true
+    default_transition_length: 250ms
+    effects:
+      - pulse:
+      - flicker:
