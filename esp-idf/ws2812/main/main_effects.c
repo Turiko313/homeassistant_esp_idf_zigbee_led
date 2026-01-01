@@ -66,9 +66,17 @@ static light_state_t light_state = {
     .effect_counter = 0
 };
 
-// Conversion HSV vers RGB
+// Conversion HSV vers RGB (mais on enverra en GRB au LED strip)
 static void hsv_to_rgb(uint8_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b)
 {
+    if (s == 0) {
+        // Gris (achromatique)
+        *r = v;
+        *g = v;
+        *b = v;
+        return;
+    }
+
     uint16_t h_scaled = h * 360 / 254;
     uint8_t region = h_scaled / 60;
     uint8_t remainder = (h_scaled - (region * 60)) * 6;
@@ -94,7 +102,7 @@ static void effect_rainbow(uint32_t counter)
         uint8_t hue = (counter + (i * 256 / LED_STRIP_LENGTH)) & 0xFF;
         uint8_t r, g, b;
         hsv_to_rgb(hue, 254, light_state.level, &r, &g, &b);
-        led_strip_set_pixel(led_strip, i, r, g, b);
+        led_strip_set_pixel(led_strip, i, g, r, b);  // GRB order!
     }
 }
 
@@ -111,7 +119,7 @@ static void effect_strobe(uint32_t counter)
     }
     
     for (int i = 0; i < LED_STRIP_LENGTH; i++) {
-        led_strip_set_pixel(led_strip, i, r, g, b);
+        led_strip_set_pixel(led_strip, i, g, r, b);  // GRB order!
     }
 }
 
@@ -123,7 +131,7 @@ static void effect_flicker(uint32_t counter)
     hsv_to_rgb(light_state.hue, light_state.saturation, brightness, &r, &g, &b);
     
     for (int i = 0; i < LED_STRIP_LENGTH; i++) {
-        led_strip_set_pixel(led_strip, i, r, g, b);
+        led_strip_set_pixel(led_strip, i, g, r, b);  // GRB order!
     }
 }
 
@@ -136,7 +144,7 @@ static void effect_pulse(uint32_t counter)
     hsv_to_rgb(light_state.hue, light_state.saturation, level, &r, &g, &b);
     
     for (int i = 0; i < LED_STRIP_LENGTH; i++) {
-        led_strip_set_pixel(led_strip, i, r, g, b);
+        led_strip_set_pixel(led_strip, i, g, r, b);  // GRB order!
     }
 }
 
@@ -153,7 +161,7 @@ static void effect_scan(uint32_t counter)
     
     for (int i = 0; i < LED_STRIP_LENGTH; i++) {
         if (abs(i - pos) < 3) {
-            led_strip_set_pixel(led_strip, i, r, g, b);
+            led_strip_set_pixel(led_strip, i, g, r, b);  // GRB order!
         } else {
             led_strip_set_pixel(led_strip, i, 0, 0, 0);
         }
@@ -168,7 +176,7 @@ static void effect_twinkle(uint32_t counter)
             if (esp_random() % 10 < 2) {
                 uint8_t r, g, b;
                 hsv_to_rgb(light_state.hue, light_state.saturation, light_state.level, &r, &g, &b);
-                led_strip_set_pixel(led_strip, i, r, g, b);
+                led_strip_set_pixel(led_strip, i, g, r, b);  // GRB order!
             } else {
                 led_strip_set_pixel(led_strip, i, 0, 0, 0);
             }
@@ -200,7 +208,7 @@ static void effect_fireworks(uint32_t counter)
                 uint8_t r, g, b;
                 uint8_t brightness = light_state.level * (10 - burst_size) / 10;
                 hsv_to_rgb((light_state.hue + i * 10) & 0xFF, light_state.saturation, brightness, &r, &g, &b);
-                led_strip_set_pixel(led_strip, i, r, g, b);
+                led_strip_set_pixel(led_strip, i, g, r, b);  // GRB order!
             }
         }
     }
@@ -246,8 +254,9 @@ static void update_led_strip(void)
             // Couleur statique
             uint8_t r, g, b;
             hsv_to_rgb(light_state.hue, light_state.saturation, light_state.level, &r, &g, &b);
+            ESP_LOGI(TAG, "  -> RGB calculé: R=%d, G=%d, B=%d", r, g, b);
             for (int i = 0; i < LED_STRIP_LENGTH; i++) {
-                led_strip_set_pixel(led_strip, i, r, g, b);
+                led_strip_set_pixel(led_strip, i, g, r, b);  // GRB order!
             }
             break;
         }
@@ -500,35 +509,28 @@ void app_main(void)
     led_strip_clear(led_strip);
     led_strip_refresh(led_strip);
 
-    // TEST: Vérifier que le ruban LED fonctionne
-    ESP_LOGI(TAG, "TEST LED STRIP - ROUGE (RGB) pendant 2 secondes");
-    for (int i = 0; i < LED_STRIP_LENGTH; i++) {
-        led_strip_set_pixel(led_strip, i, 50, 0, 0);  // R, G, B
-    }
-    led_strip_refresh(led_strip);
-    vTaskDelay(pdMS_TO_TICKS(2000));
-    
+    // TEST: Vérifier que le ruban LED fonctionne avec l'ordre GRB
     ESP_LOGI(TAG, "TEST LED STRIP - ROUGE (GRB) pendant 2 secondes");
     for (int i = 0; i < LED_STRIP_LENGTH; i++) {
-        led_strip_set_pixel(led_strip, i, 0, 50, 0);  // G, R, B (= ROUGE en GRB)
+        led_strip_set_pixel(led_strip, i, 0, 50, 0);  // G, R, B = Rouge
     }
     led_strip_refresh(led_strip);
     vTaskDelay(pdMS_TO_TICKS(2000));
     
-    ESP_LOGI(TAG, "TEST LED STRIP - Vert (RGB) pendant 2 secondes");
+    ESP_LOGI(TAG, "TEST LED STRIP - VERT (GRB) pendant 2 secondes");
     for (int i = 0; i < LED_STRIP_LENGTH; i++) {
-        led_strip_set_pixel(led_strip, i, 0, 50, 0);  // R, G, B
+        led_strip_set_pixel(led_strip, i, 50, 0, 0);  // G, R, B = Vert
     }
     led_strip_refresh(led_strip);
     vTaskDelay(pdMS_TO_TICKS(2000));
     
-    ESP_LOGI(TAG, "TEST LED STRIP - Bleu (RGB) pendant 2 secondes");
+    ESP_LOGI(TAG, "TEST LED STRIP - BLEU (GRB) pendant 2 secondes");
     for (int i = 0; i < LED_STRIP_LENGTH; i++) {
-        led_strip_set_pixel(led_strip, i, 0, 0, 50);  // R, G, B
+        led_strip_set_pixel(led_strip, i, 0, 0, 50);  // G, R, B = Bleu
     }
     led_strip_refresh(led_strip);
     vTaskDelay(pdMS_TO_TICKS(2000));
-
+    
     led_strip_clear(led_strip);
     led_strip_refresh(led_strip);
 
