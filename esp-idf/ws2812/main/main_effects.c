@@ -529,6 +529,31 @@ void app_main(void)
     ESP_LOGI(TAG, "Démarrage: Lumière OFF - Effet actif: %s", effect_names[light_state.current_effect]);
     ESP_LOGI(TAG, "Effets disponibles: Rainbow, Strobe, Flicker, Pulse, Scan, Twinkle, Fireworks");
     
+    // TEST MANUEL: Simuler un changement de couleur depuis Zigbee
+    ESP_LOGI(TAG, "TEST MANUEL - Allumage en ROUGE pendant 3 secondes");
+    light_state.on_off = true;
+    light_state.hue = 0;        // Rouge
+    light_state.saturation = 254;  // Couleur saturée
+    light_state.level = 128;
+    update_led_strip();
+    vTaskDelay(pdMS_TO_TICKS(3000));
+    
+    ESP_LOGI(TAG, "TEST MANUEL - Changement en VERT pendant 3 secondes");
+    light_state.hue = 85;       // Vert (85/254 * 360 ? 120°)
+    light_state.saturation = 254;
+    update_led_strip();
+    vTaskDelay(pdMS_TO_TICKS(3000));
+    
+    ESP_LOGI(TAG, "TEST MANUEL - Changement en BLEU pendant 3 secondes");
+    light_state.hue = 170;      // Bleu (170/254 * 360 ? 240°)
+    light_state.saturation = 254;
+    update_led_strip();
+    vTaskDelay(pdMS_TO_TICKS(3000));
+    
+    ESP_LOGI(TAG, "TEST MANUEL - Extinction");
+    light_state.on_off = false;
+    update_led_strip();
+    
     // Démarrer avec lumière ÉTEINTE (contrôle via Home Assistant)
     // Pour changer l'effet par défaut, modifie: light_state.current_effect = EFFECT_RAINBOW;
 
