@@ -21,10 +21,10 @@ Contrôleur Zigbee minimaliste pour rubans LED WS2812/WS2812B avec ESP32-H2, comp
 
 | Composant | Version |
 |-----------|---------|
-| **ESP-IDF** | v5.3.1 |
-| **Zigbee SDK** | espressif/esp-zigbee-sdk v1.1 |
-| **LED Strip** | espressif/led_strip v1.2.0 |
-| **FreeRTOS** | v10.6 |
+| **ESP-IDF** | >= 5.0 |
+| **esp-zboss-lib** | 1.6.4 |
+| **esp-zigbee-lib** | 1.6.4 |
+| **led_strip** | ^2.5.0 |
 
 ### 3. Compiler et flasher
 
