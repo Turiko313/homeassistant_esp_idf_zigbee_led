@@ -313,20 +313,12 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
                 light_state.hue = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : light_state.hue;
                 ESP_LOGI(TAG, "Light hue set to %d", light_state.hue);
-                // Rapporter la valeur à Zigbee
-                esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT, ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
-                                              ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_HUE_ID,
-                                              &light_state.hue, false);
                 light_changed = true;
             }
             else if (message->attribute.id == ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID &&
                      message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
                 light_state.saturation = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : light_state.saturation;
                 ESP_LOGI(TAG, "Light saturation set to %d", light_state.saturation);
-                // Rapporter la valeur à Zigbee
-                esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT, ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
-                                              ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_COLOR_CONTROL_CURRENT_SATURATION_ID,
-                                              &light_state.saturation, false);
                 light_changed = true;
             }
         }
