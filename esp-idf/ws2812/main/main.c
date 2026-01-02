@@ -24,41 +24,9 @@ static led_strip_handle_t led_strip = NULL;
 static light_state_t light_state = {
     .on_off = false,
     .level = 0,        // Toujours 0% au démarrage
-    .hue = 0,
-    .saturation = 0,
     .color_x = 0x616B,
     .color_y = 0x607D
 };
-
-// Conversion HSV vers RGB (corrigée)
-static void hsv_to_rgb(uint8_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b)
-{
-    // Cas spécial : saturation = 0 ? couleur blanche/grise
-    if (s == 0) {
-        *r = v;
-        *g = v;
-        *b = v;
-        return;
-    }
-
-    uint32_t hue = (uint32_t)h * 360 / 254;      // h (0-254) ? 0-360°
-    uint8_t region = hue / 60;
-    uint16_t rem = hue % 60;
-    uint8_t remainder = (rem * 255) / 60;        // CORRECTION: 0 � 255
-    
-    uint8_t p = (v * (255 - s)) >> 8;
-    uint8_t q = (v * (255 - ((s * remainder) >> 8))) >> 8;
-    uint8_t t = (v * (255 - ((s * (255 - remainder)) >> 8))) >> 8;
-    
-    switch (region) {
-        case 0:  *r = v; *g = t; *b = p; break;
-        case 1:  *r = q; *g = v; *b = p; break;
-        case 2:  *r = p; *g = v; *b = t; break;
-        case 3:  *r = p; *g = q; *b = v; break;
-        case 4:  *r = t; *g = p; *b = v; break;
-        default: *r = v; *g = p; *b = q; break;
-    }
-}
 
 // Conversion XY (CIE 1931) vers RGB
 static void xy_to_rgb(uint16_t x, uint16_t y, uint8_t brightness, uint8_t *r, uint8_t *g, uint8_t *b)

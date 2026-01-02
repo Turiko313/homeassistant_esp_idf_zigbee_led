@@ -49,8 +49,6 @@
 typedef struct {
     bool on_off;
     uint8_t level;
-    uint8_t hue;
-    uint8_t saturation;
     uint16_t color_x;           // Coordonnée X CIE 1931 (0-65535, représente 0.0-1.0)
     uint16_t color_y;           // Coordonnée Y CIE 1931 (0-65535, représente 0.0-1.0)
 } light_state_t;
