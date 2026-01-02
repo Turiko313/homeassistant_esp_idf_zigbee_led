@@ -1,5 +1,5 @@
 [1/5] cmd.exe /C "cd /D C:\Users\franc\source\repos\Turiko313\homeassistant_esp_idf_zigbee_led\esp-idf\ws2812\build\esp-idf\esptool_py && C:\Espressif\python_env\idf5.3_py3.11_env\Scripts\python.exe C:/Espressif/frameworks/esp-idf-v5.3.1/components/partition_table/check_sizes.py --offset 0x8000 partition --type app C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/build/partition_table/partition-table.bin C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/build/zigbee_ws2812_light.bin"
-zigbee_ws2812_light.bin binary size 0x86a50 bytes. Smallest app partition is 0xe1000 bytes. 0x5a5b0 bytes (40%) free.
+zigbee_ws2812_light.bin binary size 0x80b20 bytes. Smallest app partition is 0xe1000 bytes. 0x604e0 bytes (43%) free.
 [2/5] Performing build step for 'bootloader'
 [1/1] cmd.exe /C "cd /D C:\Users\franc\source\repos\Turiko313\homeassistant_esp_idf_zigbee_led\esp-idf\ws2812\build\bootloader\esp-idf\esptool_py && C:\Espressif\python_env\idf5.3_py3.11_env\Scripts\python.exe C:/Espressif/frameworks/esp-idf-v5.3.1/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/build/bootloader/bootloader.bin"
 Bootloader binary size 0x53d0 bytes. 0x2c30 bytes (35%) free.
@@ -20,39 +20,38 @@ Changing baud rate to 460800
 Changed.
 Configuring flash size...
 Flash will be erased from 0x00000000 to 0x00005fff...
-Flash will be erased from 0x00010000 to 0x00096fff...
+Flash will be erased from 0x00010000 to 0x00090fff...
 Flash will be erased from 0x00008000 to 0x00008fff...
 SHA digest in image updated
-Compressed 21456 bytes to 12964...
+Compressed 21456 bytes to 12965...
 Writing at 0x00000000... (100 %)
-Wrote 21456 bytes (12964 compressed) at 0x00000000 in 0.3 seconds (effective 506.8 kbit/s)...
+Wrote 21456 bytes (12965 compressed) at 0x00000000 in 0.3 seconds (effective 506.6 kbit/s)...
 Hash of data verified.
-Compressed 551504 bytes to 313809...
+Compressed 527136 bytes to 303519...
 Writing at 0x00010000... (5 %)
-Writing at 0x0001dfe9... (10 %)
-Writing at 0x00025064... (15 %)
-Writing at 0x0002bb60... (20 %)
-Writing at 0x0003363e... (25 %)
-Writing at 0x00039cb8... (30 %)
-Writing at 0x0003f8f4... (35 %)
-Writing at 0x0004561b... (40 %)
-Writing at 0x0004b40d... (45 %)
-Writing at 0x000514d3... (50 %)
-Writing at 0x000576e4... (55 %)
-Writing at 0x0005edbb... (60 %)
-Writing at 0x00064cfd... (65 %)
-Writing at 0x0006afda... (70 %)
-Writing at 0x0007241e... (75 %)
-Writing at 0x000795c0... (80 %)
-Writing at 0x0007f2fd... (85 %)
-Writing at 0x0008700b... (90 %)
-Writing at 0x0008dce8... (95 %)
-Writing at 0x00095554... (100 %)
-Wrote 551504 bytes (313809 compressed) at 0x00010000 in 3.3 seconds (effective 1344.2 kbit/s)...
+Writing at 0x0001cddf... (10 %)
+Writing at 0x00023f38... (15 %)
+Writing at 0x0002ba8a... (21 %)
+Writing at 0x000320a8... (26 %)
+Writing at 0x00037dac... (31 %)
+Writing at 0x0003dad2... (36 %)
+Writing at 0x0004387a... (42 %)
+Writing at 0x00049952... (47 %)
+Writing at 0x0004fa84... (52 %)
+Writing at 0x00057264... (57 %)
+Writing at 0x0005d1d3... (63 %)
+Writing at 0x000634ac... (68 %)
+Writing at 0x0006a7d7... (73 %)
+Writing at 0x0007103b... (78 %)
+Writing at 0x00076ebc... (84 %)
+Writing at 0x0007eaa6... (89 %)
+Writing at 0x00085a64... (94 %)
+Writing at 0x0008c7a9... (100 %)
+Wrote 527136 bytes (303519 compressed) at 0x00010000 in 3.0 seconds (effective 1387.4 kbit/s)...
 Hash of data verified.
 Compressed 3072 bytes to 136...
 Writing at 0x00008000... (100 %)
-Wrote 3072 bytes (136 compressed) at 0x00008000 in 0.0 seconds (effective 545.9 kbit/s)...
+Wrote 3072 bytes (136 compressed) at 0x00008000 in 0.0 seconds (effective 533.7 kbit/s)...
 Hash of data verified.
 
 Leaving...

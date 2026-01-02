@@ -1,19 +1,4 @@
--- Found Git: C:/Espressif/tools/idf-git/2.44.0/cmd/git.exe (found version "2.44.0.windows.1") 
 -- ccache will be used for faster recompilation
--- The C compiler identification is GNU 13.2.0
--- The CXX compiler identification is GNU 13.2.0
--- The ASM compiler identification is GNU
--- Found assembler: C:/Espressif/tools/riscv32-esp-elf/esp-13.2.0_20240530/riscv32-esp-elf/bin/riscv32-esp-elf-gcc.exe
--- Detecting C compiler ABI info
--- Detecting C compiler ABI info - done
--- Check for working C compiler: C:/Espressif/tools/riscv32-esp-elf/esp-13.2.0_20240530/riscv32-esp-elf/bin/riscv32-esp-elf-gcc.exe - skipped
--- Detecting C compile features
--- Detecting C compile features - done
--- Detecting CXX compiler ABI info
--- Detecting CXX compiler ABI info - done
--- Check for working CXX compiler: C:/Espressif/tools/riscv32-esp-elf/esp-13.2.0_20240530/riscv32-esp-elf/bin/riscv32-esp-elf-g++.exe - skipped
--- Detecting CXX compile features
--- Detecting CXX compile features - done
 -- Building ESP-IDF components for target esp32h2
 Processing 4 dependencies:
 [1/4] espressif/esp-zboss-lib (1.6.4)
@@ -24,13 +9,7 @@ Processing 4 dependencies:
 Loading defaults file C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/sdkconfig.defaults...
 warning: unknown kconfig symbol 'IEEE802154_RECEIVE_DONE_HANDLER' assigned to 'y' in C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/sdkconfig.defaults
 -- Adding linker script C:/Espressif/frameworks/esp-idf-v5.3.1/components/riscv/ld/rom.api.ld
--- Found Python3: C:/Espressif/python_env/idf5.3_py3.11_env/Scripts/python.exe (found version "3.11.2") found components: Interpreter 
--- Performing Test CMAKE_HAVE_LIBC_PTHREAD
--- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
--- Found Threads: TRUE  
--- Performing Test C_COMPILER_SUPPORTS_WFORMAT_SIGNEDNESS
--- Performing Test C_COMPILER_SUPPORTS_WFORMAT_SIGNEDNESS - Success
--- App "zigbee_ws2812_light" version: 481deb1-dirty
+-- App "zigbee_ws2812_light" version: 9410d56-dirty
 -- Adding linker script C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/build/esp-idf/esp_system/ld/memory.ld
 -- Adding linker script C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/build/esp-idf/esp_system/ld/sections.ld.in
 -- Adding linker script C:/Espressif/frameworks/esp-idf-v5.3.1/components/esp_rom/esp32h2/ld/esp32h2.rom.ld
@@ -47,3 +26,7 @@ warning: unknown kconfig symbol 'IEEE802154_RECEIVE_DONE_HANDLER' assigned to 'y
 -- Configuring done
 -- Generating done
 -- Build files have been written to: C:/Users/franc/source/repos/Turiko313/homeassistant_esp_idf_zigbee_led/esp-idf/ws2812/build
+[0/1] Re-running CMake...
+[1/2] Cleaning additional files...
+[2/2] Cleaning all built files...
+Cleaning... 892 files.
