@@ -4,8 +4,8 @@
 #include "esp_zigbee_core.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-// #include "freertos/queue.h"        // ← À supprimer si tu ne l'utilises PAS dans main.c
-// #include "driver/gpio.h"           // ← Pas nécessaire ici (tu n'utilises pas de GPIO dans ce header)
+#include <stdbool.h>
+#include <stdint.h>
 
 /* ====================== Configuration Zigbee ====================== */
 
@@ -33,7 +33,7 @@
         },                                                              \
     }
 
-/* ================= Configuration radio et hôte par défaut ============ */
+/* ================= Configuration radio et hôte par défaut =========== */
 #define ESP_ZB_DEFAULT_RADIO_CONFIG()                           \
     {                                                           \
         .radio_mode = ZB_RADIO_MODE_NATIVE,                     \
@@ -43,5 +43,16 @@
     {                                                           \
         .host_connection_mode = ZB_HOST_CONNECTION_MODE_NONE,   \
     }
-    
+
+/* ====================== Structure pour l'état de la lumière ====================== */
+
+typedef struct {
+    bool on_off;
+    uint8_t level;
+    uint8_t hue;
+    uint8_t saturation;
+    uint16_t color_x;           // Coordonnée X CIE 1931 (0-65535, représente 0.0-1.0)
+    uint16_t color_y;           // Coordonnée Y CIE 1931 (0-65535, représente 0.0-1.0)
+} light_state_t;
+
 #endif /* MAIN_H */
