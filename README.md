@@ -38,11 +38,23 @@ idf.py -p COM5 erase-flash && idf.py clean && idf.py build && idf.py -p COM5 fla
 
 ---
 
-## ?? Fonctionnalités
+## ? Fonctionnalités
 
-? **ON/OFF** - Allumer/Éteindre  
-? **Brightness** - Luminosité 0-254  
-? **Color XY** - Couleur CIE 1931 (picker de couleur)
+| Fonctionnalité | Description |
+|----------------|-------------|
+| ? **ON/OFF** | Allumer/éteindre |
+| ? **Brightness** | Luminosité 0-254 |
+| ? **Color XY** | Couleur CIE 1931 (picker de couleur) |
+| ? **Effets** | Rainbow, Strobe, Twinkle |
+
+### Effets disponibles
+
+| ID | Effet | Description |
+|----|-------|-------------|
+| 0 | None | Couleur fixe |
+| 1 | Rainbow | Arc-en-ciel défilant |
+| 2 | Strobe | Clignotement rapide |
+| 3 | Twinkle | Scintillement aléatoire (étoiles) |
 
 ---
 
@@ -64,15 +76,37 @@ Recompilez après modification.
 
 ---
 
-## ?? Converter Zigbee2MQTT (optionnel)
+## ?? Converter Zigbee2MQTT
 
-Par défaut, Zigbee2MQTT expose des fonctionnalités inutiles (Effect, Power-on behavior, Color Temperature).
-
-**Pour une interface propre :**
+Pour activer les effets dans Zigbee2MQTT :
 
 1. **Dans Zigbee2MQTT** ? Settings ? External converters ? Add new converter
-2. **Copiez le contenu** de `esp-idf/ws2812/WS2812_Light.mjs`
+2. **Copiez le contenu** de `WS2812_Light.mjs` (à la racine du projet)
 3. **Sauvegardez et redémarrez** Zigbee2MQTT
 4. **Supprimez et re-pairez** l'appareil
 
+Le converter expose :
+- Lumière avec luminosité et couleur XY
+- Sélecteur d'effet (none, rainbow, strobe, twinkle)
+
 ---
+
+## ?? Structure du projet
+
+```
+??? WS2812_Light.mjs          # Converter Zigbee2MQTT
+??? esp-idf/ws2812/
+?   ??? main/
+?   ?   ??? main.c            # Code principal
+?   ?   ??? main.h            # Configuration Zigbee
+?   ?   ??? effects.c         # Système d'effets LED
+?   ?   ??? effects.h         # Définitions des effets
+?   ??? CMakeLists.txt
+??? README.md
+```
+
+---
+
+## ?? Licence
+
+MIT License

@@ -51,6 +51,7 @@ typedef struct {
     uint8_t level;
     uint16_t color_x;           // Coordonnée X CIE 1931 (0-65535, représente 0.0-1.0)
     uint16_t color_y;           // Coordonnée Y CIE 1931 (0-65535, représente 0.0-1.0)
+    uint8_t effect_id;          // ID de l'effet actif (0=None, 1=Rainbow, 2=Strobe, 3=Twinkle)
 } light_state_t;
 
 #endif /* MAIN_H */

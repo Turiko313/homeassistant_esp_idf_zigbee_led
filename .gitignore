@@ -4,3 +4,10 @@
 *.suo
 .vscode/
 secrets.yaml
+
+# ESP-IDF build artifacts
+esp-idf/ws2812/build/
+esp-idf/ws2812/sdkconfig
+esp-idf/ws2812/sdkconfig.old
+esp-idf/ws2812/.cache/
+esp-idf/ws2812/dependencies.lock
