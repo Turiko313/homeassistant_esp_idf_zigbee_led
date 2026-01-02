@@ -27,8 +27,40 @@ static light_state_t light_state = {
     .level = 0,
     .color_x = 0x616B,
     .color_y = 0x607D,
-    .effect_id = 0
+    .effect_id = 0,
+    .speed_rainbow = 128,
+    .speed_strobe = 128,
+    .speed_twinkle = 128
 };
+
+// Fonction helper pour remettre l'effet sur none et notifier Z2M
+static void reset_effect_to_none(void)
+{
+    if (light_state.effect_id != EFFECT_NONE) {
+        light_state.effect_id = EFFECT_NONE;
+        effects_stop();
+        // Notifier Z2M
+        uint8_t effect_value = 0;
+        esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT,
+            ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+            ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+            0xF000,
+            &effect_value,
+            false);
+        ESP_LOGI(TAG, "Effet remis sur none");
+    }
+}
+
+// Fonction helper pour obtenir la vitesse de l'effet actuel
+static uint8_t get_current_effect_speed(void)
+{
+    switch (light_state.effect_id) {
+        case EFFECT_RAINBOW: return light_state.speed_rainbow;
+        case EFFECT_STROBE:  return light_state.speed_strobe;
+        case EFFECT_TWINKLE: return light_state.speed_twinkle;
+        default: return 128;
+    }
+}
 
 // Conversion XY (CIE 1931) vers RGB
 static void xy_to_rgb(uint16_t x, uint16_t y, uint8_t brightness, uint8_t *r, uint8_t *g, uint8_t *b)
@@ -125,6 +157,12 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL) {
                 light_state.on_off = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state.on_off;
                 ESP_LOGI(TAG, "ON/OFF -> %s", light_state.on_off ? "ON" : "OFF");
+                
+                // Si OFF, remettre l'effet sur none
+                if (!light_state.on_off) {
+                    reset_effect_to_none();
+                }
+                
                 light_changed = true;
             }
         }
@@ -133,6 +171,40 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
                 light_state.level = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : light_state.level;
                 ESP_LOGI(TAG, "LEVEL -> %d", light_state.level);
+                
+                // Mettre a jour la luminosite des effets
+                effects_set_brightness(light_state.level);
+                
+                // Si on change la luminosite a une valeur > 0, allumer automatiquement
+                if (light_state.level > 0 && !light_state.on_off) {
+                    light_state.on_off = true;
+                    // Mettre a jour l'attribut Zigbee ON/OFF pour notifier Z2M
+                    bool on_off_value = true;
+                    esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT,
+                        ESP_ZB_ZCL_CLUSTER_ID_ON_OFF,
+                        ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+                        ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
+                        &on_off_value,
+                        false);
+                    ESP_LOGI(TAG, "Auto ON (level > 0)");
+                }
+                // Si luminosite = 0, eteindre automatiquement et arreter l'effet
+                else if (light_state.level == 0 && light_state.on_off) {
+                    light_state.on_off = false;
+                    // Mettre a jour l'attribut Zigbee ON/OFF pour notifier Z2M
+                    bool on_off_value = false;
+                    esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT,
+                        ESP_ZB_ZCL_CLUSTER_ID_ON_OFF,
+                        ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+                        ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
+                        &on_off_value,
+                        false);
+                    ESP_LOGI(TAG, "Auto OFF (level = 0)");
+                    
+                    // Arreter l'effet et le mettre sur none
+                    reset_effect_to_none();
+                }
+                
                 light_changed = true;
             }
         }
@@ -183,10 +255,76 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         effects_stop();
                         ESP_LOGI(TAG, "Effet arrete");
                         light_changed = true;
-                    } else if (light_state.on_off) {
-                        effects_start((effect_type_t)light_state.effect_id, 50);
-                        ESP_LOGI(TAG, "Effet demarre: %d", light_state.effect_id);
+                    } else {
+                        // Allumer automatiquement si un effet est selectionne
+                        if (!light_state.on_off) {
+                            light_state.on_off = true;
+                            bool on_off_value = true;
+                            esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT,
+                                ESP_ZB_ZCL_CLUSTER_ID_ON_OFF,
+                                ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+                                ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
+                                &on_off_value,
+                                false);
+                            ESP_LOGI(TAG, "Auto ON (effet active)");
+                        }
+                        // Si luminosite = 0, mettre une valeur par defaut
+                        if (light_state.level == 0) {
+                            light_state.level = 200;
+                            esp_zb_zcl_set_attribute_val(HA_ESP_LIGHT_ENDPOINT,
+                                ESP_ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
+                                ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+                                ESP_ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID,
+                                &light_state.level,
+                                false);
+                            effects_set_brightness(light_state.level);
+                            ESP_LOGI(TAG, "Auto level = 200 (effet active)");
+                        }
+                        // Demarrer l'effet avec sa vitesse specifique
+                        uint8_t speed = get_current_effect_speed();
+                        effects_start((effect_type_t)light_state.effect_id, speed);
+                        ESP_LOGI(TAG, "Effet demarre: %d, vitesse: %d", light_state.effect_id, speed);
                     }
+                }
+            }
+            // Vitesse Rainbow (0xF001)
+            else if (message->attribute.id == 0xF001 &&
+                     message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
+                light_state.speed_rainbow = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : 128;
+                ESP_LOGI(TAG, "Vitesse Rainbow: %d", light_state.speed_rainbow);
+                if (light_state.effect_id == EFFECT_RAINBOW && light_state.on_off) {
+                    effects_set_speed(light_state.speed_rainbow);
+                }
+            }
+            // Vitesse Strobe (0xF002)
+            else if (message->attribute.id == 0xF002 &&
+                     message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
+                light_state.speed_strobe = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : 128;
+                ESP_LOGI(TAG, "Vitesse Strobe: %d", light_state.speed_strobe);
+                if (light_state.effect_id == EFFECT_STROBE && light_state.on_off) {
+                    effects_set_speed(light_state.speed_strobe);
+                }
+            }
+            // Vitesse Twinkle (0xF003)
+            else if (message->attribute.id == 0xF003 &&
+                     message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
+                light_state.speed_twinkle = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : 128;
+                ESP_LOGI(TAG, "Vitesse Twinkle: %d", light_state.speed_twinkle);
+                if (light_state.effect_id == EFFECT_TWINKLE && light_state.on_off) {
+                    effects_set_speed(light_state.speed_twinkle);
+                }
+            }
+        }
+        // Gestion du cluster Identify
+        else if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_IDENTIFY) {
+            if (message->attribute.id == ESP_ZB_ZCL_ATTR_IDENTIFY_IDENTIFY_TIME_ID &&
+                message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U16) {
+                uint16_t identify_time = message->attribute.data.value ? *(uint16_t *)message->attribute.data.value : 0;
+                ESP_LOGI(TAG, "Identify: %d secondes", identify_time);
+                
+                if (identify_time > 0) {
+                    // Demarrer effet clignotement pour identification
+                    effects_identify(identify_time);
                 }
             }
         }
@@ -279,6 +417,10 @@ static void esp_zb_task(void *pvParameters)
     light_cfg.color_cfg.current_x = light_state.color_x;
     light_cfg.color_cfg.current_y = light_state.color_y;
     
+    // Forcer ON/OFF a OFF et luminosite a 0 au demarrage
+    light_cfg.on_off_cfg.on_off = false;
+    light_cfg.level_cfg.current_level = 0;
+
     // ===== Endpoint 10 : LIGHT =====
     esp_zb_attribute_list_t *basic_cluster = esp_zb_basic_cluster_create(&light_cfg.basic_cfg);
     
@@ -295,7 +437,7 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_attribute_list_t *level_cluster = esp_zb_level_cluster_create(&light_cfg.level_cfg);
     esp_zb_attribute_list_t *color_cluster = esp_zb_color_control_cluster_create(&light_cfg.color_cfg);
     
-    // Attribut personnalise pour l'effet (ID 0xF000)
+    // Attribut personnalisé pour l'effet (ID 0xF000)
     uint8_t effect_attr_value = 0;
     esp_zb_cluster_add_manufacturer_attr(color_cluster, 
                                         ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
@@ -304,6 +446,33 @@ static void esp_zb_task(void *pvParameters)
                                         ESP_ZB_ZCL_ATTR_TYPE_U8,
                                         ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE,
                                         &effect_attr_value);
+
+    // Attributs personnalises pour la vitesse de chaque effet
+    uint8_t speed_default = 128;
+    // 0xF001 = Vitesse Rainbow
+    esp_zb_cluster_add_manufacturer_attr(color_cluster, 
+                                        ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                                        0xF001,
+                                        0x1234,
+                                        ESP_ZB_ZCL_ATTR_TYPE_U8,
+                                        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE,
+                                        &speed_default);
+    // 0xF002 = Vitesse Strobe
+    esp_zb_cluster_add_manufacturer_attr(color_cluster, 
+                                        ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                                        0xF002,
+                                        0x1234,
+                                        ESP_ZB_ZCL_ATTR_TYPE_U8,
+                                        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE,
+                                        &speed_default);
+    // 0xF003 = Vitesse Twinkle
+    esp_zb_cluster_add_manufacturer_attr(color_cluster, 
+                                        ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                                        0xF003,
+                                        0x1234,
+                                        ESP_ZB_ZCL_ATTR_TYPE_U8,
+                                        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE,
+                                        &speed_default);
 
     esp_zb_cluster_list_t *cluster_list_light = esp_zb_zcl_cluster_list_create();
     esp_zb_cluster_list_add_basic_cluster(cluster_list_light, basic_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);

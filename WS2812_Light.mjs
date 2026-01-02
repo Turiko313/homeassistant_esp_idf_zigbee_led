@@ -1,6 +1,5 @@
 // Converter Zigbee2MQTT pour ESP32-H2 WS2812 avec support des effets
-// Fichier à placer dans : zigbee2mqtt/data/converters/WS2812_Light.mjs
-// Ou via l'interface Z2M : Settings ? External converters ? Add new converter
+// Fichier a placer dans : zigbee2mqtt/data/converters/WS2812_Light.mjs
 
 const fz = require('zigbee-herdsman-converters/converters/fromZigbee');
 const tz = require('zigbee-herdsman-converters/converters/toZigbee');
@@ -15,35 +14,30 @@ const definition = {
     vendor: 'Custom',
     description: 'ESP32-H2 WS2812 LED Strip Controller avec effets',
     
-    // Exposition des fonctionnalités
     exposes: [
         e.light_brightness_colorxy(),
-        exposes.enum('effect', ea.ALL, ['none', 'rainbow', 'strobe', 'twinkle'])
+        exposes.enum('effect', ea.SET, ['none', 'rainbow', 'strobe', 'twinkle'])
             .withDescription('Effet d\'animation'),
+        exposes.numeric('speed_rainbow', ea.SET)
+            .withValueMin(1)
+            .withValueMax(255)
+            .withDescription('Vitesse Rainbow (1=lent, 255=rapide)'),
+        exposes.numeric('speed_strobe', ea.SET)
+            .withValueMin(1)
+            .withValueMax(255)
+            .withDescription('Vitesse Strobe (1=lent, 255=rapide)'),
+        exposes.numeric('speed_twinkle', ea.SET)
+            .withValueMin(1)
+            .withValueMax(255)
+            .withDescription('Vitesse Twinkle (1=lent, 255=rapide)'),
     ],
     
-    // Convertisseurs FROM Zigbee (lecture)
     fromZigbee: [
         fz.on_off,
         fz.brightness,
         fz.color_colortemp,
-        {
-            cluster: 'lightingColorCtrl',
-            type: ['attributeReport', 'readResponse'],
-            convert: (model, msg, publish, options, meta) => {
-                const result = {};
-                // Attribut custom pour effet (ID 0xF000, manufacturer code 0x1234)
-                if (msg.data.hasOwnProperty('61440')) { // 0xF000 = 61440
-                    const effectId = msg.data['61440'];
-                    const effects = ['none', 'rainbow', 'strobe', 'twinkle'];
-                    result.effect = effects[effectId] || 'none';
-                }
-                return result;
-            },
-        },
     ],
     
-    // Convertisseurs TO Zigbee (écriture)
     toZigbee: [
         tz.light_onoff_brightness,
         tz.light_color,
@@ -59,26 +53,47 @@ const definition = {
                 
                 const effectId = effects[value.toLowerCase()] || 0;
                 
-                // Écrire dans l'attribut manufacturer-specific 0xF000
-                // avec manufacturer code 0x1234
-                // dataType 0x20 = ZCL_DATATYPE_UINT8 (DataType.uint8)
                 await entity.write('lightingColorCtrl', {
-                    '61440': {value: effectId, type: 0x20},  // 0xF000 = 61440, type 0x20 = uint8
+                    '61440': {value: effectId, type: 0x20},
                 }, {
                     manufacturerCode: 0x1234,
                 });
                 
                 return {state: {effect: value}};
             },
-            convertGet: async (entity, key, meta) => {
-                await entity.read('lightingColorCtrl', ['61440'], {
-                    manufacturerCode: 0x1234,
-                });
+        },
+        {
+            key: ['speed_rainbow'],
+            convertSet: async (entity, key, value, meta) => {
+                const speed = Math.max(1, Math.min(255, value));
+                await entity.write('lightingColorCtrl', {
+                    '61441': {value: speed, type: 0x20},
+                }, {manufacturerCode: 0x1234});
+                return {state: {speed_rainbow: speed}};
+            },
+        },
+        {
+            key: ['speed_strobe'],
+            convertSet: async (entity, key, value, meta) => {
+                const speed = Math.max(1, Math.min(255, value));
+                await entity.write('lightingColorCtrl', {
+                    '61442': {value: speed, type: 0x20},
+                }, {manufacturerCode: 0x1234});
+                return {state: {speed_strobe: speed}};
+            },
+        },
+        {
+            key: ['speed_twinkle'],
+            convertSet: async (entity, key, value, meta) => {
+                const speed = Math.max(1, Math.min(255, value));
+                await entity.write('lightingColorCtrl', {
+                    '61443': {value: speed, type: 0x20},
+                }, {manufacturerCode: 0x1234});
+                return {state: {speed_twinkle: speed}};
             },
         },
     ],
     
-    // Configuration du reporting (optionnel)
     configure: async (device, coordinatorEndpoint, logger) => {
         const endpoint = device.getEndpoint(10);
         
@@ -90,7 +105,6 @@ const definition = {
         
         await reporting.onOff(endpoint);
         await reporting.brightness(endpoint);
-        await reporting.colorXY(endpoint);
     },
 };
 

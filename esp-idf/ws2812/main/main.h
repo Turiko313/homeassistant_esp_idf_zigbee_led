@@ -49,9 +49,12 @@
 typedef struct {
     bool on_off;
     uint8_t level;
-    uint16_t color_x;           // Coordonnée X CIE 1931 (0-65535, représente 0.0-1.0)
-    uint16_t color_y;           // Coordonnée Y CIE 1931 (0-65535, représente 0.0-1.0)
+    uint16_t color_x;           // Coordonnee X CIE 1931 (0-65535, represente 0.0-1.0)
+    uint16_t color_y;           // Coordonnee Y CIE 1931 (0-65535, represente 0.0-1.0)
     uint8_t effect_id;          // ID de l'effet actif (0=None, 1=Rainbow, 2=Strobe, 3=Twinkle)
+    uint8_t speed_rainbow;      // Vitesse Rainbow (1-255)
+    uint8_t speed_strobe;       // Vitesse Strobe (1-255)
+    uint8_t speed_twinkle;      // Vitesse Twinkle (1-255)
 } light_state_t;
 
 #endif /* MAIN_H */

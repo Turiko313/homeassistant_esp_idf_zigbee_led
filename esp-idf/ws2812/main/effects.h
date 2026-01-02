@@ -59,6 +59,27 @@ void effects_stop(void);
 void effects_set_base_color(uint8_t r, uint8_t g, uint8_t b);
 
 /**
+ * @brief Définit la luminosité globale des effets
+ * 
+ * @param brightness Luminosité (0-255)
+ */
+void effects_set_brightness(uint8_t brightness);
+
+/**
+ * @brief Définit la vitesse des effets
+ * 
+ * @param speed Vitesse (1-255, plus haut = plus rapide)
+ */
+void effects_set_speed(uint8_t speed);
+
+/**
+ * @brief Démarre l'effet d'identification (clignotement)
+ * 
+ * @param duration_sec Durée en secondes
+ */
+void effects_identify(uint16_t duration_sec);
+
+/**
  * @brief Récupère la configuration actuelle de l'effet
  * 
  * @return Pointeur vers la configuration (lecture seule)
