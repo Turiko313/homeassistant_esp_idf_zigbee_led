@@ -19,9 +19,12 @@ Contrôleur Zigbee minimaliste pour rubans LED WS2812/WS2812B avec ESP32-H2, comp
 
 ### 2. Versions requises
 
-- **ESP-IDF:** v5.3.1
-- **ESP32-H2 target**
-- **Zigbee2MQTT** ou **Home Assistant ZHA**
+| Composant | Version |
+|-----------|---------|
+| **ESP-IDF** | v5.3.1 |
+| **Zigbee SDK** | espressif/esp-zigbee-sdk v1.1 |
+| **LED Strip** | espressif/led_strip v1.2.0 |
+| **FreeRTOS** | v10.6 |
 
 ### 3. Compiler et flasher
 
@@ -73,18 +76,3 @@ Par défaut, Zigbee2MQTT expose des fonctionnalités inutiles (Effect, Power-on be
 4. **Supprimez et re-pairez** l'appareil
 
 ---
-
-## ?? Structure du projet
-
-```
-esp-idf/ws2812/
-??? main/                  # Code source
-??? README.md              # Documentation complète
-??? WS2812_Light.mjs       # Converter Zigbee2MQTT
-```
-
----
-
-## ?? Documentation complète
-
-**[esp-idf/ws2812/README.md](esp-idf/ws2812/README.md)** - Guide complet avec dépannage, utilisation MQTT/HA, couleurs XY, etc.
