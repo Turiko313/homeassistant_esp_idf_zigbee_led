@@ -24,6 +24,8 @@ static effect_config_t g_effect_config = {
 static rgb_color_t g_base_color = {255, 255, 255};
 static uint8_t g_brightness = 255;  // Luminosite globale (0-255)
 static TaskHandle_t g_effect_task_handle = NULL;
+static TaskHandle_t g_identify_task_handle = NULL;
+static bool g_identify_running = false;
 
 // Buffer pour stocker l'etat de chaque LED (pour twinkle)
 static uint8_t *g_led_brightness = NULL;
@@ -172,7 +174,49 @@ static void effect_task(void *pvParameters)
     }
 }
 
-/* ============== Fonctions publiques ============== */
+/* Tache FreeRTOS pour l'identification (clignotement) */
+static void identify_task(void *pvParameters)
+{
+    uint16_t duration_sec = (uint32_t)pvParameters;
+    // Sauvegarder l'etat actuel
+    effect_config_t saved_cfg = g_effect_config;
+    rgb_color_t saved_base = g_base_color;
+    uint8_t saved_brightness = g_brightness;
+
+    // Mettre en pause les effets pendant l'identify
+    g_effect_config.active = false;
+    g_effect_config.type = EFFECT_NONE;
+
+    for (uint16_t i = 0; i < duration_sec * 4; i++) { // 4 clignotements par seconde
+        bool on = (i % 2) == 0;
+        for (int j = 0; j < g_num_leds; j++) {
+            if (on) {
+                led_strip_set_pixel(g_led_strip, j, 255, 255, 255);
+            } else {
+                led_strip_set_pixel(g_led_strip, j, 0, 0, 0);
+            }
+        }
+        led_strip_refresh(g_led_strip);
+        vTaskDelay(pdMS_TO_TICKS(250));
+    }
+
+    // Eteindre a la fin
+    led_strip_clear(g_led_strip);
+    led_strip_refresh(g_led_strip);
+
+    // Restaurer l'etat precedent si actif
+    g_base_color = saved_base;
+    g_brightness = saved_brightness;
+    if (saved_cfg.active && saved_cfg.type != EFFECT_NONE) {
+        g_effect_config.type = saved_cfg.type;
+        g_effect_config.speed = saved_cfg.speed;
+        g_effect_config.active = true;
+    }
+
+    g_identify_running = false;
+    g_identify_task_handle = NULL;
+    vTaskDelete(NULL);
+}
 
 void effects_init(led_strip_handle_t strip, uint16_t num_leds)
 {
@@ -260,32 +304,31 @@ void effects_identify(uint16_t duration_sec)
     effect_type_t saved_type = g_effect_config.type;
     bool saved_active = g_effect_config.active;
     
-    // Clignoter pendant la duree specifiee
-    for (uint16_t i = 0; i < duration_sec * 4; i++) {  // 4 clignotements par seconde
-        bool on = (i % 2) == 0;
+    // Lancer la tache d'identification si pas deja en cours
+    if (!g_identify_running) {
+        g_identify_running = true;
+        BaseType_t ret = xTaskCreate(
+            identify_task,
+            "identify_task",
+            2048,
+            (void *)duration_sec,
+            5,
+            &g_identify_task_handle
+        );
         
-        for (int j = 0; j < g_num_leds; j++) {
-            if (on) {
-                led_strip_set_pixel(g_led_strip, j, 255, 255, 255);  // Blanc
-            } else {
-                led_strip_set_pixel(g_led_strip, j, 0, 0, 0);
-            }
+        if (ret != pdPASS) {
+            ESP_LOGE(TAG, "Echec creation tache d'identification");
+            g_identify_running = false;
+        } else {
+            ESP_LOGI(TAG, "Tache d'identification demarree");
         }
-        led_strip_refresh(g_led_strip);
-        vTaskDelay(pdMS_TO_TICKS(250));  // 250ms par etat
     }
-    
-    // Eteindre a la fin
-    led_strip_clear(g_led_strip);
-    led_strip_refresh(g_led_strip);
     
     // Restaurer l'effet precedent si actif
     if (saved_active && saved_type != EFFECT_NONE) {
         g_effect_config.type = saved_type;
         g_effect_config.active = true;
     }
-    
-    ESP_LOGI(TAG, "Identify termine");
 }
 
 const effect_config_t* effects_get_config(void)
