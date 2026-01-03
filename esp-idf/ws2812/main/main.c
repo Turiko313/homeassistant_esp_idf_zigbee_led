@@ -182,16 +182,16 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                     // Passage de OFF a ON
                     light_state.on_off = true;
                     
-                    // Forcer un niveau minimum de 20% si level=0
+                    // Forcer un niveau minimum de 80% si level=0
                     if (light_state.level == 0) {
-                        light_state.level = 50;  // ~20%
+                        light_state.level = 200;  // ~80%
                         last_level_non_zero = light_state.level;
                         set_zcl_attr_u8(HA_ESP_LIGHT_ENDPOINT,
                             ESP_ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
                             ESP_ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID,
                             light_state.level);
                         effects_set_brightness(light_state.level);
-                        ESP_LOGI(TAG, "Auto level = 50 (20%%) au premier ON");
+                        ESP_LOGI(TAG, "Auto level = 200 (80%%) au premier ON");
                     }
                 } else if (!new_on && light_state.on_off) {
                     // Passage de ON a OFF
