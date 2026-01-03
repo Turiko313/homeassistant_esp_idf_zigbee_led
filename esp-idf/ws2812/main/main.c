@@ -226,13 +226,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 }
                 // Ne pas forcer OFF quand level=0, on laisse la lampe allumee mais noire
                 else if (light_state.level == 0 && light_state.on_off) {
-                    //light_state.on_off = false;
-                    //set_zcl_attr_u8(HA_ESP_LIGHT_ENDPOINT,
-                    //    ESP_ZB_ZCL_CLUSTER_ID_ON_OFF,
-                    //    ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
-                    //    0);
                     ESP_LOGI(TAG, "Level = 0 (lamp will stay ON but black)");
-                    //reset_effect_to_none();
                 }
                 
                 light_changed = true;
@@ -319,17 +313,14 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
             else if (message->attribute.id == 0xF001 &&
                      message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
                 uint8_t new_speed = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : 0;
-                
                 ESP_LOGI(TAG, "Vitesse Rainbow recu: %d", new_speed);
-                
-                if (new_speed > 0 && new_speed <= 255) {
+                if (new_speed > 0) {
                     light_state.speed_rainbow = new_speed;
                     attr_speed_rainbow = light_state.speed_rainbow;
                     set_zcl_attr_u8(HA_ESP_LIGHT_ENDPOINT,
                         ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
                         0xF001,
                         attr_speed_rainbow);
-                    
                     if (light_state.effect_id == EFFECT_RAINBOW) {
                         effects_set_brightness(light_state.level);
                         uint8_t speed = get_current_effect_speed();
@@ -342,17 +333,14 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
             else if (message->attribute.id == 0xF002 &&
                      message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
                 uint8_t new_speed = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : 0;
-                
                 ESP_LOGI(TAG, "Vitesse Strobe recu: %d", new_speed);
-                
-                if (new_speed > 0 && new_speed <= 255) {
+                if (new_speed > 0) {
                     light_state.speed_strobe = new_speed;
                     attr_speed_strobe = light_state.speed_strobe;
                     set_zcl_attr_u8(HA_ESP_LIGHT_ENDPOINT,
                         ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
                         0xF002,
                         attr_speed_strobe);
-                    
                     if (light_state.effect_id == EFFECT_STROBE) {
                         effects_set_brightness(light_state.level);
                         uint8_t speed = get_current_effect_speed();
@@ -365,17 +353,14 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
             else if (message->attribute.id == 0xF003 &&
                      message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
                 uint8_t new_speed = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : 0;
-                
                 ESP_LOGI(TAG, "Vitesse Twinkle recu: %d", new_speed);
-                
-                if (new_speed > 0 && new_speed <= 255) {
+                if (new_speed > 0) {
                     light_state.speed_twinkle = new_speed;
                     attr_speed_twinkle = light_state.speed_twinkle;
                     set_zcl_attr_u8(HA_ESP_LIGHT_ENDPOINT,
                         ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
                         0xF003,
                         attr_speed_twinkle);
-                    
                     if (light_state.effect_id == EFFECT_TWINKLE) {
                         effects_set_brightness(light_state.level);
                         uint8_t speed = get_current_effect_speed();
@@ -387,41 +372,213 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
         }
     }
 
+    if (light_changed) {
+        update_led_strip();
+    }
+
     return ret;
 }
 
-// Boucle principale
+// Gestionnaire des actions Zigbee
+static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id, const void *message)
+{
+    esp_err_t ret = ESP_OK;
+    switch (callback_id) {
+    case ESP_ZB_CORE_SET_ATTR_VALUE_CB_ID:
+        ret = zb_attribute_handler((esp_zb_zcl_set_attr_value_message_t *)message);
+        break;
+    default:
+        ESP_LOGW(TAG, "Callback Zigbee non gere (0x%x)", callback_id);
+        break;
+    }
+    return ret;
+}
+
+// Gestionnaire des signaux Zigbee
+static void bdb_start_network_steering_cb(uint8_t param)
+{
+    esp_err_t ret = esp_zb_bdb_start_top_level_commissioning(param);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Echec relance network steering : %s", esp_err_to_name(ret));
+    }
+}
+
+void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
+{
+    uint32_t *p_sg_p = signal_struct->p_app_signal;
+    esp_err_t err_status = signal_struct->esp_err_status;
+    esp_zb_app_signal_type_t sig_type = *p_sg_p;
+
+    switch (sig_type) {
+    case ESP_ZB_ZDO_SIGNAL_SKIP_STARTUP:
+        ESP_LOGI(TAG, "Initialisation Zigbee");
+        esp_zb_bdb_start_top_level_commissioning(ESP_ZB_BDB_MODE_INITIALIZATION);
+        break;
+    case ESP_ZB_BDB_SIGNAL_DEVICE_FIRST_START:
+    case ESP_ZB_BDB_SIGNAL_DEVICE_REBOOT:
+        if (err_status == ESP_OK) {
+            if (esp_zb_bdb_is_factory_new()) {
+                ESP_LOGI(TAG, "Demarrage reseau (appairage)");
+                esp_zb_bdb_start_top_level_commissioning(ESP_ZB_BDB_MODE_NETWORK_STEERING);
+            } else {
+                ESP_LOGI(TAG, "Redemarrage appareil");
+            }
+        } else {
+            ESP_LOGW(TAG, "Echec redemarrage: %s", esp_err_to_name(err_status));
+        }
+        break;
+    case ESP_ZB_BDB_SIGNAL_STEERING:
+        if (err_status == ESP_OK) {
+            esp_zb_ieee_addr_t extended_pan_id;
+            esp_zb_get_extended_pan_id(extended_pan_id);
+            ESP_LOGI(TAG, "Connecte au reseau Zigbee - PAN:0x%04hx, Canal:%d, Addr:0x%04hx",
+                     esp_zb_get_pan_id(), esp_zb_get_current_channel(), esp_zb_get_short_address());
+        } else {
+            ESP_LOGI(TAG, "Echec connexion reseau: %s", esp_err_to_name(err_status));
+            esp_zb_scheduler_alarm((esp_zb_callback_t)bdb_start_network_steering_cb, ESP_ZB_BDB_MODE_NETWORK_STEERING, 1000);
+        }
+        break;
+    default:
+        ESP_LOGI(TAG, "Signal ZDO: %s (0x%x)", esp_zb_zdo_signal_to_string(sig_type), sig_type);
+        break;
+    }
+}
+
+// Tache Zigbee principale
+static void esp_zb_task(void *pvParameters)
+{
+    esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZED_CONFIG();
+    esp_zb_init(&zb_nwk_cfg);
+
+    esp_zb_color_dimmable_light_cfg_t light_cfg = ESP_ZB_DEFAULT_COLOR_DIMMABLE_LIGHT_CONFIG();
+
+    // Configuration : SEULEMENT XY (pas de HS, pas de Color Temperature)
+    light_cfg.color_cfg.color_mode = 1;
+    light_cfg.color_cfg.enhanced_color_mode = 1;
+    light_cfg.color_cfg.color_capabilities = 0x0008;
+    light_cfg.color_cfg.current_x = light_state.color_x;
+    light_cfg.color_cfg.current_y = light_state.color_y;
+    
+    // Forcer ON/OFF a OFF et luminosite a 0 au demarrage
+    light_cfg.on_off_cfg.on_off = false;
+    light_cfg.level_cfg.current_level = 0;
+
+    // ===== Endpoint 10 : LIGHT =====
+    esp_zb_attribute_list_t *basic_cluster = esp_zb_basic_cluster_create(&light_cfg.basic_cfg);
+    
+    char manufacturer[] = {11, 'E', 'S', 'P', '3', '2', '-', 'Z', 'i', 'g', 'b', 'e'};
+    char model[] = {12, 'W', 'S', '2', '8', '1', '2', '_', 'L', 'i', 'g', 'h', 't'};
+    
+    esp_zb_basic_cluster_add_attr(basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_MANUFACTURER_NAME_ID, manufacturer);
+    esp_zb_basic_cluster_add_attr(basic_cluster, ESP_ZB_ZCL_ATTR_BASIC_MODEL_IDENTIFIER_ID, model);
+    
+    esp_zb_attribute_list_t *identify_cluster = esp_zb_identify_cluster_create(&light_cfg.identify_cfg);
+    esp_zb_attribute_list_t *groups_cluster = esp_zb_groups_cluster_create(&light_cfg.groups_cfg);
+    esp_zb_attribute_list_t *scenes_cluster = esp_zb_scenes_cluster_create(&light_cfg.scenes_cfg);
+    esp_zb_attribute_list_t *on_off_cluster = esp_zb_on_off_cluster_create(&light_cfg.on_off_cfg);
+    esp_zb_attribute_list_t *level_cluster = esp_zb_level_cluster_create(&light_cfg.level_cfg);
+    esp_zb_attribute_list_t *color_cluster = esp_zb_color_control_cluster_create(&light_cfg.color_cfg);
+    
+    // Attribut personnalisé pour l'effet (ID 0xF000)
+    esp_zb_cluster_add_manufacturer_attr(color_cluster, 
+                                        ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                                        0xF000,
+                                        0x1234,
+                                        ESP_ZB_ZCL_ATTR_TYPE_U8,
+                                        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE,
+                                        &attr_effect_value);
+
+    // Attributs personnalises pour la vitesse de chaque effet
+    esp_zb_cluster_add_manufacturer_attr(color_cluster, 
+                                        ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                                        0xF001,
+                                        0x1234,
+                                        ESP_ZB_ZCL_ATTR_TYPE_U8,
+                                        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE,
+                                        &attr_speed_rainbow);
+    esp_zb_cluster_add_manufacturer_attr(color_cluster, 
+                                        ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                                        0xF002,
+                                        0x1234,
+                                        ESP_ZB_ZCL_ATTR_TYPE_U8,
+                                        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE,
+                                        &attr_speed_strobe);
+    esp_zb_cluster_add_manufacturer_attr(color_cluster, 
+                                        ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                                        0xF003,
+                                        0x1234,
+                                        ESP_ZB_ZCL_ATTR_TYPE_U8,
+                                        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE,
+                                        &attr_speed_twinkle);
+
+    esp_zb_cluster_list_t *cluster_list_light = esp_zb_zcl_cluster_list_create();
+    esp_zb_cluster_list_add_basic_cluster(cluster_list_light, basic_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    esp_zb_cluster_list_add_identify_cluster(cluster_list_light, identify_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    esp_zb_cluster_list_add_groups_cluster(cluster_list_light, groups_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    esp_zb_cluster_list_add_scenes_cluster(cluster_list_light, scenes_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    esp_zb_cluster_list_add_on_off_cluster(cluster_list_light, on_off_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    esp_zb_cluster_list_add_level_cluster(cluster_list_light, level_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    esp_zb_cluster_list_add_color_control_cluster(cluster_list_light, color_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+
+    esp_zb_ep_list_t *ep_list = esp_zb_ep_list_create();
+    
+    esp_zb_endpoint_config_t endpoint_light_config = {
+        .endpoint = HA_ESP_LIGHT_ENDPOINT,
+        .app_profile_id = ESP_ZB_AF_HA_PROFILE_ID,
+        .app_device_id = ESP_ZB_HA_COLOR_DIMMABLE_LIGHT_DEVICE_ID,
+        .app_device_version = 0
+    };
+    esp_zb_ep_list_add_ep(ep_list, cluster_list_light, endpoint_light_config);
+    
+    esp_zb_device_register(ep_list);
+
+    ESP_LOGI(TAG, "Appareil enregistre: Color Dimmable Light (XY only)");
+
+    esp_zb_core_action_handler_register(zb_action_handler);
+    esp_zb_set_primary_network_channel_set(ESP_ZB_PRIMARY_CHANNEL_MASK);
+    ESP_ERROR_CHECK(esp_zb_start(false));
+    esp_zb_stack_main_loop();
+}
+
+// Fonction principale
 void app_main(void)
 {
-    ESP_LOGI(TAG, "Démarrage de l'application");
+    esp_zb_platform_config_t config = {
+        .radio_config = ESP_ZB_DEFAULT_RADIO_CONFIG(),
+        .host_config = ESP_ZB_DEFAULT_HOST_CONFIG(),
+    };
 
-    // Initialisation de la NVS (pour le stockage persistant)
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGE || ret == ESP_ERR_NVS_PAGE_FULL) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
+    ESP_ERROR_CHECK(nvs_flash_init());
+    ESP_ERROR_CHECK(esp_zb_platform_config(&config));
+
+    // Configuration LED Strip WS2812
+    led_strip_config_t strip_config = {
+        .strip_gpio_num = LED_STRIP_GPIO,
+        .max_leds = LED_STRIP_LENGTH,
+        .led_pixel_format = LED_PIXEL_FORMAT_GRB,
+        .led_model = LED_MODEL_WS2812,
+        .flags.invert_out = false,
+    };
     
-    // Initialisation du Zigbee
-    esp_zb_error_code_t ez_ret = esp_zb_init();
-    ESP_ERROR_CHECK(ez_ret);
+    led_strip_rmt_config_t rmt_config = {
+        .clk_src = RMT_CLK_SRC_DEFAULT,
+        .resolution_hz = 10 * 1000 * 1000,
+        .flags.with_dma = false,
+    };
     
-    // Création du serveur Zigbee Light
-    ez_ret = esp_zb_service_create(HA_ESP_LIGHT_ENDPOINT, zb_attribute_handler);
-    ESP_ERROR_CHECK(ez_ret);
+    ESP_ERROR_CHECK(led_strip_new_rmt_device(&strip_config, &rmt_config, &led_strip));
     
-    // Gestion des effets
-    effects_init(LED_STRIP_LENGTH);
-    
-    // Initialisation du ruban LED
-    led_strip = led_strip_create(LED_STRIP_GPIO, LED_STRIP_LENGTH, LED_STRIP_TYPE_WS2812);
     led_strip_clear(led_strip);
     led_strip_refresh(led_strip);
     
-    // Démarrage du réseau Zigbee
-    ez_ret = esp_zb_start();
-    ESP_ERROR_CHECK(ez_ret);
-    
-    ESP_LOGI(TAG, "Application prête");
+    // Initialiser le systeme d'effets
+    effects_init(led_strip, LED_STRIP_LENGTH);
+
+    ESP_LOGI(TAG, "===================================");
+    ESP_LOGI(TAG, "  Zigbee WS2812 LED Strip Controller");
+    ESP_LOGI(TAG, "  GPIO: %d | LEDs: %d", LED_STRIP_GPIO, LED_STRIP_LENGTH);
+    ESP_LOGI(TAG, "  Demarrage: OFF (0%%)");
+    ESP_LOGI(TAG, "===================================");
+
+    xTaskCreate(esp_zb_task, "Zigbee_main", 4096, NULL, 6, NULL);
 }
