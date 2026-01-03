@@ -176,23 +176,29 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
             if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID &&
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL) {
                 bool new_on = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state.on_off;
-                light_state.on_off = new_on;
-                ESP_LOGI(TAG, "ON/OFF -> %s", light_state.on_off ? "ON" : "OFF");
+                ESP_LOGI(TAG, "ON/OFF -> %s", new_on ? "ON" : "OFF");
                 
-                if (light_state.on_off) {
-                    // Si ON avec level a 0, restaurer le dernier niveau non nul
+                if (new_on && !light_state.on_off) {
+                    // Passage de OFF a ON
+                    light_state.on_off = true;
+                    
+                    // Forcer un niveau minimum de 20% si level=0
                     if (light_state.level == 0) {
-                        light_state.level = (last_level_non_zero == 0) ? 200 : last_level_non_zero;
+                        light_state.level = 50;  // ~20%
+                        last_level_non_zero = light_state.level;
                         set_zcl_attr_u8(HA_ESP_LIGHT_ENDPOINT,
                             ESP_ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
                             ESP_ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID,
                             light_state.level);
                         effects_set_brightness(light_state.level);
-                        ESP_LOGI(TAG, "Auto level restore = %d (ON depuis 0)", light_state.level);
+                        ESP_LOGI(TAG, "Auto level = 50 (20%%) au premier ON");
                     }
-                } else {
-                    // Si OFF, remettre l'effet sur none
+                } else if (!new_on && light_state.on_off) {
+                    // Passage de ON a OFF
+                    light_state.on_off = false;
                     reset_effect_to_none();
+                } else {
+                    light_state.on_off = new_on;
                 }
                 
                 light_changed = true;
