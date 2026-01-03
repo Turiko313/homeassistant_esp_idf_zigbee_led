@@ -219,15 +219,15 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         1);
                     ESP_LOGI(TAG, "Auto ON (level > 0)");
                 }
-                // Si luminosite = 0, eteindre automatiquement et arreter l'effet
+                // Ne pas forcer OFF quand level=0, on laisse la lampe allumee mais noire
                 else if (light_state.level == 0 && light_state.on_off) {
-                    light_state.on_off = false;
-                    set_zcl_attr_u8(HA_ESP_LIGHT_ENDPOINT,
-                        ESP_ZB_ZCL_CLUSTER_ID_ON_OFF,
-                        ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
-                        0);
-                    ESP_LOGI(TAG, "Auto OFF (level = 0)");
-                    reset_effect_to_none();
+                    //light_state.on_off = false;
+                    //set_zcl_attr_u8(HA_ESP_LIGHT_ENDPOINT,
+                    //    ESP_ZB_ZCL_CLUSTER_ID_ON_OFF,
+                    //    ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID,
+                    //    0);
+                    ESP_LOGI(TAG, "Level = 0 (lamp will stay ON but black)");
+                    //reset_effect_to_none();
                 }
                 
                 light_changed = true;
