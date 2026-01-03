@@ -33,6 +33,9 @@ static light_state_t light_state = {
     .speed_twinkle = 128
 };
 
+// Dernier niveau non nul pour eviter le blocage a 0% au premier ON
+static uint8_t last_level_non_zero = 200;
+
 // Stockage persistant des attributs manufacturer-specific
 static uint8_t attr_effect_value = 0;
 static uint8_t attr_speed_rainbow = 128;
@@ -172,11 +175,23 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
         if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_ON_OFF) {
             if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID &&
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_BOOL) {
-                light_state.on_off = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state.on_off;
+                bool new_on = message->attribute.data.value ? *(bool *)message->attribute.data.value : light_state.on_off;
+                light_state.on_off = new_on;
                 ESP_LOGI(TAG, "ON/OFF -> %s", light_state.on_off ? "ON" : "OFF");
                 
-                // Si OFF, remettre l'effet sur none
-                if (!light_state.on_off) {
+                if (light_state.on_off) {
+                    // Si ON avec level a 0, restaurer le dernier niveau non nul
+                    if (light_state.level == 0) {
+                        light_state.level = (last_level_non_zero == 0) ? 200 : last_level_non_zero;
+                        set_zcl_attr_u8(HA_ESP_LIGHT_ENDPOINT,
+                            ESP_ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
+                            ESP_ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID,
+                            light_state.level);
+                        effects_set_brightness(light_state.level);
+                        ESP_LOGI(TAG, "Auto level restore = %d (ON depuis 0)", light_state.level);
+                    }
+                } else {
+                    // Si OFF, remettre l'effet sur none
                     reset_effect_to_none();
                 }
                 
@@ -187,6 +202,9 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
             if (message->attribute.id == ESP_ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID &&
                 message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
                 light_state.level = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : light_state.level;
+                if (light_state.level > 0) {
+                    last_level_non_zero = light_state.level;
+                }
                 ESP_LOGI(TAG, "LEVEL -> %d", light_state.level);
                 
                 // Mettre a jour la luminosite des effets
@@ -278,6 +296,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                         }
                         if (light_state.level == 0) {
                             light_state.level = 200;
+                            last_level_non_zero = light_state.level;
                             set_zcl_attr_u8(HA_ESP_LIGHT_ENDPOINT,
                                 ESP_ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
                                 ESP_ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID,
