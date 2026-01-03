@@ -148,16 +148,10 @@ static void update_led_strip(void)
     
     // Mode couleur fixe (pas d'effet)
     uint8_t r, g, b;
+    xy_to_rgb(light_state.color_x, light_state.color_y, light_state.level, &r, &g, &b);
     
-    // Si level = 0, utiliser un blanc minimal pour que ON soit visible
-    if (light_state.level == 0) {
-        r = g = b = 1;  // Minimum visible
-        ESP_LOGI(TAG, "LED ON - Level=0, using minimal white RGB(1,1,1)");
-    } else {
-        xy_to_rgb(light_state.color_x, light_state.color_y, light_state.level, &r, &g, &b);
-        ESP_LOGI(TAG, "LED ON - Level=%d, XY=(0x%04X,0x%04X) -> RGB(%d,%d,%d)", 
-                 light_state.level, light_state.color_x, light_state.color_y, r, g, b);
-    }
+    ESP_LOGI(TAG, "LED ON - Level=%d, XY=(0x%04X,0x%04X) -> RGB(%d,%d,%d)", 
+             light_state.level, light_state.color_x, light_state.color_y, r, g, b);
     
     effects_set_base_color(r, g, b);
     
@@ -187,6 +181,17 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 if (new_on && !light_state.on_off) {
                     // Passage de OFF a ON
                     light_state.on_off = true;
+                    // Si niveau a 0, appliquer un niveau par defaut 128 (50%)
+                    if (light_state.level == 0) {
+                        light_state.level = 128;
+                        last_level_non_zero = light_state.level;
+                        set_zcl_attr_u8(HA_ESP_LIGHT_ENDPOINT,
+                            ESP_ZB_ZCL_CLUSTER_ID_LEVEL_CONTROL,
+                            ESP_ZB_ZCL_ATTR_LEVEL_CONTROL_CURRENT_LEVEL_ID,
+                            light_state.level);
+                        effects_set_brightness(light_state.level);
+                        ESP_LOGI(TAG, "Auto level = 128 (50%) au premier ON");
+                    }
                 } else if (!new_on && light_state.on_off) {
                     // Passage de ON a OFF
                     light_state.on_off = false;
@@ -311,4 +316,112 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
                 }
             }
             // Vitesse Rainbow (0xF001)
-            else if (message->attribute.id =
+            else if (message->attribute.id == 0xF001 &&
+                     message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
+                uint8_t new_speed = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : 0;
+                
+                ESP_LOGI(TAG, "Vitesse Rainbow recu: %d", new_speed);
+                
+                if (new_speed > 0 && new_speed <= 255) {
+                    light_state.speed_rainbow = new_speed;
+                    attr_speed_rainbow = light_state.speed_rainbow;
+                    set_zcl_attr_u8(HA_ESP_LIGHT_ENDPOINT,
+                        ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                        0xF001,
+                        attr_speed_rainbow);
+                    
+                    if (light_state.effect_id == EFFECT_RAINBOW) {
+                        effects_set_brightness(light_state.level);
+                        uint8_t speed = get_current_effect_speed();
+                        effects_start(EFFECT_RAINBOW, speed);
+                        ESP_LOGI(TAG, "Vitesse Rainbow ajuste: %d", light_state.speed_rainbow);
+                    }
+                }
+            }
+            // Vitesse Strobe (0xF002)
+            else if (message->attribute.id == 0xF002 &&
+                     message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
+                uint8_t new_speed = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : 0;
+                
+                ESP_LOGI(TAG, "Vitesse Strobe recu: %d", new_speed);
+                
+                if (new_speed > 0 && new_speed <= 255) {
+                    light_state.speed_strobe = new_speed;
+                    attr_speed_strobe = light_state.speed_strobe;
+                    set_zcl_attr_u8(HA_ESP_LIGHT_ENDPOINT,
+                        ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                        0xF002,
+                        attr_speed_strobe);
+                    
+                    if (light_state.effect_id == EFFECT_STROBE) {
+                        effects_set_brightness(light_state.level);
+                        uint8_t speed = get_current_effect_speed();
+                        effects_start(EFFECT_STROBE, speed);
+                        ESP_LOGI(TAG, "Vitesse Strobe ajuste: %d", light_state.speed_strobe);
+                    }
+                }
+            }
+            // Vitesse Twinkle (0xF003)
+            else if (message->attribute.id == 0xF003 &&
+                     message->attribute.data.type == ESP_ZB_ZCL_ATTR_TYPE_U8) {
+                uint8_t new_speed = message->attribute.data.value ? *(uint8_t *)message->attribute.data.value : 0;
+                
+                ESP_LOGI(TAG, "Vitesse Twinkle recu: %d", new_speed);
+                
+                if (new_speed > 0 && new_speed <= 255) {
+                    light_state.speed_twinkle = new_speed;
+                    attr_speed_twinkle = light_state.speed_twinkle;
+                    set_zcl_attr_u8(HA_ESP_LIGHT_ENDPOINT,
+                        ESP_ZB_ZCL_CLUSTER_ID_COLOR_CONTROL,
+                        0xF003,
+                        attr_speed_twinkle);
+                    
+                    if (light_state.effect_id == EFFECT_TWINKLE) {
+                        effects_set_brightness(light_state.level);
+                        uint8_t speed = get_current_effect_speed();
+                        effects_start(EFFECT_TWINKLE, speed);
+                        ESP_LOGI(TAG, "Vitesse Twinkle ajuste: %d", light_state.speed_twinkle);
+                    }
+                }
+            }
+        }
+    }
+
+    return ret;
+}
+
+// Boucle principale
+void app_main(void)
+{
+    ESP_LOGI(TAG, "Démarrage de l'application");
+
+    // Initialisation de la NVS (pour le stockage persistant)
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGE || ret == ESP_ERR_NVS_PAGE_FULL) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+    
+    // Initialisation du Zigbee
+    esp_zb_error_code_t ez_ret = esp_zb_init();
+    ESP_ERROR_CHECK(ez_ret);
+    
+    // Création du serveur Zigbee Light
+    ez_ret = esp_zb_service_create(HA_ESP_LIGHT_ENDPOINT, zb_attribute_handler);
+    ESP_ERROR_CHECK(ez_ret);
+    
+    // Gestion des effets
+    effects_init(LED_STRIP_LENGTH);
+    
+    // Initialisation du ruban LED
+    led_strip = led_strip_create(LED_STRIP_GPIO, LED_STRIP_LENGTH, LED_STRIP_TYPE_WS2812);
+    led_strip_clear(led_strip);
+    led_strip_refresh(led_strip);
+    
+    // Démarrage du réseau Zigbee
+    ez_ret = esp_zb_start();
+    ESP_ERROR_CHECK(ez_ret);
+    
+    ESP_LOGI(TAG, "Application prête");
+}
